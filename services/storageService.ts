@@ -1,39 +1,5 @@
-import { DiaryEntry, User, PASTEL_COLORS, MoodType } from '../types';
+import { DiaryEntry, User, PASTEL_COLORS, MoodType, MOODS } from '../types';
 import { createClient } from '@supabase/supabase-js';
-
-// ============================================================================
-// ⚠️ QUAN TRỌNG: BẠN CẦN CHẠY CODE SQL SAU TRONG SUPABASE SQL EDITOR ⚠️
-// ============================================================================
-/*
--- 1. Tạo bảng Users
-CREATE TABLE IF NOT EXISTS public.users (
-  username text PRIMARY KEY,
-  "isAdmin" boolean DEFAULT false,
-  "avatarColor" text
-);
-
--- 2. Tạo bảng Entries
-CREATE TABLE IF NOT EXISTS public.entries (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  username text REFERENCES public.users(username) ON DELETE CASCADE,
-  title text,
-  content text,
-  mood text,
-  "createdAt" timestamptz DEFAULT now()
-);
-
--- 3. Bật bảo mật (Row Level Security)
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
-
--- 4. Tạo Policy (Mở quyền truy cập cho App)
-CREATE POLICY "Public Access Users" ON public.users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public Access Entries" ON public.entries FOR ALL USING (true) WITH CHECK (true);
-
--- 💡 MẸO: ĐỂ BIẾN MỘT USER THÀNH ADMIN THỦ CÔNG:
--- UPDATE public.users SET "isAdmin" = true WHERE username = 'Tên_Của_Bạn';
-*/
-// ============================================================================
 
 const env = (import.meta as any).env || {};
 
@@ -56,7 +22,6 @@ let supabase: any = null;
 if (SUPABASE_URL && SUPABASE_KEY) {
   try {
       supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log('✅ Đã kết nối Supabase Client');
   } catch (error) {
       console.error('❌ Lỗi khởi tạo Supabase:', error);
   }
@@ -72,22 +37,16 @@ export const getConnectionType = (): 'SUPABASE' | 'LOCAL_STORAGE' => {
 
 export const initStorage = async () => {
   if (supabase) return;
-
   const storedUsers = localStorage.getItem(USERS_KEY);
-  const usersCount = storedUsers ? JSON.parse(storedUsers).length : 0;
-
-  if (usersCount < 1) {
-    const dummyUsers: User[] = [
-      { username: 'Saitama', isAdmin: true, avatarColor: 'bg-rose-200' },
-    ];
+  if (!storedUsers) {
+    const dummyUsers: User[] = [{ username: 'Saitama', isAdmin: true, avatarColor: 'bg-rose-200' }];
     localStorage.setItem(USERS_KEY, JSON.stringify(dummyUsers));
   }
 };
 
 export const getUsers = async (): Promise<User[]> => {
   if (supabase) {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) return [];
+    const { data } = await supabase.from('users').select('*');
     return data || [];
   }
   const usersStr = localStorage.getItem(USERS_KEY);
@@ -96,36 +55,17 @@ export const getUsers = async (): Promise<User[]> => {
 
 export const registerUser = async (username: string): Promise<{ success: boolean; message: string }> => {
   const randomColor = PASTEL_COLORS[Math.floor(Math.random() * PASTEL_COLORS.length)];
-  
   if (supabase) {
-    const { count, error: countError } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true });
-
-    if (countError && countError.code === '42P01') {
-        return { success: false, message: 'Lỗi: Chưa tạo bảng Users!' };
-    }
-
+    const { count } = await supabase.from('users').select('*', { count: 'exact', head: true });
     const shouldBeAdmin = count === 0;
-
     const { data: existing } = await supabase.from('users').select('*').eq('username', username).single();
     if (existing) return { success: false, message: 'Tên này đã có người dùng rồi!' };
-    
     const newUser: User = { username, isAdmin: shouldBeAdmin, avatarColor: randomColor };
     const { error } = await supabase.from('users').insert([newUser]);
-    
     if (error) return { success: false, message: 'Lỗi Server: ' + error.message };
-    
-    return { 
-        success: true, 
-        message: shouldBeAdmin ? 'Đăng ký thành công! Bạn là Admin đầu tiên.' : 'Đăng ký thành công!' 
-    };
+    return { success: true, message: shouldBeAdmin ? 'Đăng ký thành công! Bạn là Admin.' : 'Đăng ký thành công!' };
   }
-
   const users = await getUsers();
-  if (users.find(u => u.username === username)) {
-    return { success: false, message: 'Username đã tồn tại rồi nè!' };
-  }
   const shouldBeAdmin = users.length === 0;
   users.push({ username, isAdmin: shouldBeAdmin, avatarColor: randomColor });
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
@@ -134,22 +74,14 @@ export const registerUser = async (username: string): Promise<{ success: boolean
 
 export const loginUser = async (username: string): Promise<User | null> => {
   if (supabase) {
-    const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
-    if (error) return null;
-    if (data) {
-       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
-       return data;
-    }
-    return null;
+    const { data } = await supabase.from('users').select('*').eq('username', username).single();
+    if (data) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
+    return data;
   }
-
   const users = await getUsers();
   const user = users.find(u => u.username === username);
-  if (user) {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-    return user;
-  }
-  return null;
+  if (user) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  return user || null;
 };
 
 export const getCurrentUser = (): User | null => {
@@ -157,14 +89,11 @@ export const getCurrentUser = (): User | null => {
   return userStr ? JSON.parse(userStr) : null;
 };
 
-export const logoutUser = () => {
-  localStorage.removeItem(CURRENT_USER_KEY);
-};
+export const logoutUser = () => localStorage.removeItem(CURRENT_USER_KEY);
 
 export const getEntries = async (): Promise<DiaryEntry[]> => {
   if (supabase) {
-    const { data, error } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
-    if (error) return [];
+    const { data } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
     return data || [];
   }
   const entriesStr = localStorage.getItem(ENTRIES_KEY);
@@ -173,8 +102,7 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
 
 export const addEntry = async (entry: DiaryEntry) => {
   if (supabase) {
-    const { error } = await supabase.from('entries').insert([entry]);
-    if (error) alert("Lỗi: " + error.message);
+    await supabase.from('entries').insert([entry]);
     return;
   }
   const entries = await getEntries();
@@ -192,42 +120,72 @@ export const deleteEntry = async (id: string) => {
   localStorage.setItem(ENTRIES_KEY, JSON.stringify(newEntries));
 };
 
-/**
- * Xoá sạch dữ liệu:
- * 1. Xoá tất cả bài viết (Entries).
- * 2. Xoá tất cả người dùng THƯỜNG (isAdmin = false).
- * 3. Giữ lại tất cả Admin.
- */
 export const clearAllData = async (excludeUsername?: string) => {
     if (supabase) {
-        // 1. Xoá toàn bộ nhật ký
-        const { error: err1 } = await supabase.from('entries').delete().not('id', 'is', null);
-        if (err1) console.error("Lỗi xoá entries:", err1);
-
-        // 2. Xoá toàn bộ user thường (isAdmin = false)
-        // Điều này đảm bảo các tài khoản admin luôn được giữ lại
-        const { error: err2 } = await supabase.from('users').delete().eq('isAdmin', false);
-        if (err2) console.error("Lỗi xoá users:", err2);
-        
+        await supabase.from('entries').delete().not('id', 'is', null);
+        await supabase.from('users').delete().eq('isAdmin', false);
         return;
     }
-
-    // Local Storage logic
     localStorage.removeItem(ENTRIES_KEY);
-    
     const users = await getUsers();
-    // Chỉ giữ lại những ai là Admin
     const adminUsers = users.filter(u => u.isAdmin);
-    
-    if (adminUsers.length > 0) {
-        localStorage.setItem(USERS_KEY, JSON.stringify(adminUsers));
-    } else if (excludeUsername) {
-        // Trường hợp hy hữu không có admin nào, giữ lại user hiện tại
-        const currentUserObj = users.find(u => u.username === excludeUsername);
-        if (currentUserObj) {
-            localStorage.setItem(USERS_KEY, JSON.stringify([currentUserObj]));
+    localStorage.setItem(USERS_KEY, JSON.stringify(adminUsers));
+};
+
+/**
+ * Hàm tạo dữ liệu mẫu để test giao diện
+ */
+export const seedData = async () => {
+    const sampleUsers = [
+        { username: 'Mây Lang Thang', avatarColor: 'bg-sky-100' },
+        { username: 'Nắng Mùa Hạ', avatarColor: 'bg-amber-100' },
+        { username: 'Mưa Tháng Sáu', avatarColor: 'bg-indigo-100' },
+        { username: 'Gió Heo May', avatarColor: 'bg-teal-100' }
+    ];
+
+    const sampleContents = [
+        { title: "Một buổi chiều trà", content: "Hôm nay mình ngồi ở quán cà phê quen thuộc, ngắm nhìn dòng người qua lại. Cảm giác thật bình yên...", mood: "cloudy" },
+        { title: "Gặp lại người bạn cũ", content: "Sau 5 năm, chúng mình vẫn như ngày đầu. Cười nói vang cả một góc phố.", mood: "sunny" },
+        { title: "Ngày mưa rơi tầm tã", content: "Tiếng mưa gõ trên mái hiên làm mình nhớ về những kỷ niệm ngày xưa. Có chút buồn nhưng cũng thật nhẹ lòng.", mood: "rainy" },
+        { title: "Thành công nhỏ", content: "Cuối cùng dự án cũng hoàn thành! Mình tự hào về bản thân quá đi thôi ✨", mood: "starry" },
+        { title: "Hành trình mới", content: "Bắt đầu một công việc mới, có chút lo lắng nhưng cũng đầy hy vọng.", mood: "leaf" },
+        { title: "Cơn giông bất chợt", content: "Mọi thứ diễn ra không như ý muốn. Đôi khi cuộc sống thật mệt mỏi...", mood: "stormy" },
+        { title: "Cầu vồng sau mưa", content: "Mọi chuyện rồi sẽ ổn thôi. Luôn có ánh sáng ở phía cuối con đường.", mood: "rainbow" },
+        { title: "Vườn hoa nhỏ", content: "Sáng nay mình vừa trồng thêm vài khóm hoa trước cửa. Mong chúng sẽ sớm nở rộ.", mood: "flower" }
+    ];
+
+    const moodKeys = Object.keys(MOODS) as MoodType[];
+
+    // 1. Đăng ký các user mẫu
+    for (const u of sampleUsers) {
+        if (supabase) {
+            const { data: existing } = await supabase.from('users').select('*').eq('username', u.username).single();
+            if (!existing) await supabase.from('users').insert([{ ...u, isAdmin: false }]);
+        } else {
+            const users = await getUsers();
+            if (!users.find(exist => exist.username === u.username)) {
+                users.push({ ...u, isAdmin: false });
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+            }
         }
-    } else {
-        localStorage.removeItem(USERS_KEY);
+    }
+
+    // 2. Tạo 15 bài viết rải rác trong 10 ngày qua
+    const allUsers = [...sampleUsers.map(u => u.username), 'Saitama'];
+    for (let i = 0; i < 15; i++) {
+        const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
+        const randomContent = sampleContents[Math.floor(Math.random() * sampleContents.length)];
+        const randomDate = new Date();
+        randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 10)); // Lùi về 0-10 ngày trước
+        
+        const entry: DiaryEntry = {
+            id: crypto.randomUUID(),
+            username: randomUser,
+            title: randomContent.title + " (Mẫu)",
+            content: randomContent.content + "\n(Đây là dữ liệu mẫu được tạo tự động để bạn kiểm tra giao diện nhật ký)",
+            mood: randomContent.mood as MoodType,
+            createdAt: randomDate.toISOString()
+        };
+        await addEntry(entry);
     }
 };
