@@ -27,9 +27,19 @@ create table entries (
 */
 // ============================================================================
 
-// Điền URL và API Key của bạn vào đây
-const SUPABASE_URL = ''; 
-const SUPABASE_KEY = ''; 
+// Lấy config từ biến môi trường (.env)
+// Lưu ý: Cần restart lại server dev sau khi thay đổi file .env
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // @ts-ignore
+    return import.meta.env[key] || '';
+  }
+  return '';
+};
+
+const SUPABASE_URL = getEnv('VITE_SUPABASE_URL'); 
+const SUPABASE_KEY = getEnv('VITE_SUPABASE_KEY'); 
 
 let supabase: any = null;
 if (SUPABASE_URL && SUPABASE_KEY) {
