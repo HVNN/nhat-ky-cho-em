@@ -21,29 +21,53 @@ create table entries (
   mood text,
   "createdAt" timestamptz default now()
 );
-
--- 3. (Tùy chọn) Bật RLS nếu cần bảo mật cao hơn, 
--- nhưng với app cá nhân đơn giản thì có thể bỏ qua bước này hoặc set policy public.
 */
 // ============================================================================
 
-// Lấy config từ biến môi trường (.env)
-// Lưu ý: Cần restart lại server dev sau khi thay đổi file .env
-const getEnv = (key: string) => {
+// Hàm helper để lấy biến môi trường an toàn
+const getEnv = (key: string): string => {
+  // 1. Thử lấy từ import.meta.env (Vite standard)
   // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
     // @ts-ignore
-    return import.meta.env[key] || '';
+    return import.meta.env[key];
   }
+  
+  // 2. Thử lấy từ process.env (nếu có polyfill hoặc môi trường khác)
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    // @ts-ignore
+    return process.env[key];
+  }
+
   return '';
 };
 
-const SUPABASE_URL = getEnv('VITE_SUPABASE_URL'); 
-const SUPABASE_KEY = getEnv('VITE_SUPABASE_KEY'); 
+// Logic lấy URL: Ưu tiên VITE_, sau đó đến NEXT_PUBLIC_ (nếu dùng chung env), cuối cùng là tên gốc
+const SUPABASE_URL = 
+  getEnv('VITE_SUPABASE_URL') || 
+  getEnv('NEXT_PUBLIC_SUPABASE_URL') || 
+  getEnv('SUPABASE_URL'); // Fallback nếu build tool cho phép
+
+// Logic lấy KEY: Ưu tiên VITE_KEY, sau đó đến các biến ANON_KEY thường gặp
+const SUPABASE_KEY = 
+  getEnv('VITE_SUPABASE_KEY') || 
+  getEnv('VITE_SUPABASE_ANON_KEY') || 
+  getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || 
+  getEnv('SUPABASE_ANON_KEY'); 
 
 let supabase: any = null;
+
+// Chỉ khởi tạo Supabase nếu có đủ thông tin
 if (SUPABASE_URL && SUPABASE_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  try {
+      supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log('✅ Kết nối Supabase thành công');
+  } catch (error) {
+      console.error('❌ Lỗi khởi tạo Supabase:', error);
+  }
+} else {
+    console.log('ℹ️ Chưa tìm thấy cấu hình Supabase, sử dụng LocalStorage.');
 }
 
 const USERS_KEY = 'diary_users';
@@ -52,13 +76,13 @@ const CURRENT_USER_KEY = 'diary_current_user';
 
 // --- INIT ---
 export const initStorage = async () => {
+  // Nếu đã kết nối Supabase thì bỏ qua việc seed data ảo vào localStorage
   if (supabase) return;
 
-  // --- SEED USERS ---
+  // --- SEED USERS (LocalStorage Only) ---
   const storedUsers = localStorage.getItem(USERS_KEY);
   const usersCount = storedUsers ? JSON.parse(storedUsers).length : 0;
 
-  // Nếu ít user (dữ liệu cũ), thêm danh sách user phong phú hơn
   if (usersCount < 10) {
     const dummyUsers: User[] = [
       { username: 'Saitama', isAdmin: true, avatarColor: 'bg-rose-200' },
@@ -77,17 +101,15 @@ export const initStorage = async () => {
     localStorage.setItem(USERS_KEY, JSON.stringify(dummyUsers));
   }
   
-  // --- SEED ENTRIES ---
+  // --- SEED ENTRIES (LocalStorage Only) ---
   const storedEntries = localStorage.getItem(ENTRIES_KEY);
   const entriesCount = storedEntries ? JSON.parse(storedEntries).length : 0;
 
-  // Nếu ít nhật ký (< 20 bài), tự động sinh thêm 50 bài để test load more
   if (entriesCount < 20) {
     const now = new Date();
     const subDays = (days: number) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
     const subHours = (hours: number) => new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
 
-    // Các bài mẫu cố định
     let dummyEntries: DiaryEntry[] = [
       {
         id: '1',
@@ -131,7 +153,6 @@ export const initStorage = async () => {
       },
     ];
 
-    // Sinh thêm 50 bài ngẫu nhiên
     const sampleMoods: MoodType[] = ['sunny', 'cloudy', 'rainy', 'stormy', 'starry', 'flower', 'leaf', 'rainbow'];
     const sampleUsers = ['Mây', 'Gió', 'Nắng', 'Mưa', 'Cỏ_Ba_Lá', 'Gấu_Bông', 'Mèo_Mướp', 'Thỏ_Trắng', 'Sóc_Nâu', 'Nhím_Xù', 'Cáo_Nhỏ'];
     const sampleContents = [
@@ -161,7 +182,6 @@ export const initStorage = async () => {
         const randomUser = sampleUsers[Math.floor(Math.random() * sampleUsers.length)];
         const randomMood = sampleMoods[Math.floor(Math.random() * sampleMoods.length)];
         const randomContent = sampleContents[Math.floor(Math.random() * sampleContents.length)];
-        // Random ngày trong khoảng 60 ngày gần đây
         const daysAgo = Math.floor(Math.random() * 60); 
         
         dummyEntries.push({
@@ -174,7 +194,6 @@ export const initStorage = async () => {
         });
     }
 
-    // Sắp xếp lại theo thời gian giảm dần
     dummyEntries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     localStorage.setItem(ENTRIES_KEY, JSON.stringify(dummyEntries));
@@ -184,7 +203,11 @@ export const initStorage = async () => {
 // --- USER OPERATIONS ---
 export const getUsers = async (): Promise<User[]> => {
   if (supabase) {
-    const { data } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) {
+        console.error("Supabase Error (getUsers):", error);
+        return [];
+    }
     return data || [];
   }
   const usersStr = localStorage.getItem(USERS_KEY);
@@ -216,7 +239,11 @@ export const registerUser = async (username: string): Promise<{ success: boolean
 
 export const loginUser = async (username: string): Promise<User | null> => {
   if (supabase) {
-    const { data } = await supabase.from('users').select('*').eq('username', username).single();
+    const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
+    if (error) {
+        console.error("Supabase Error (loginUser):", error);
+        return null;
+    }
     if (data) {
        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
        return data;
@@ -246,7 +273,11 @@ export const logoutUser = () => {
 // --- DIARY OPERATIONS ---
 export const getEntries = async (): Promise<DiaryEntry[]> => {
   if (supabase) {
-    const { data } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
+    const { data, error } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
+    if (error) {
+        console.error("Supabase Error (getEntries):", error);
+        return [];
+    }
     return data || [];
   }
 
@@ -257,7 +288,10 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
 export const addEntry = async (entry: DiaryEntry) => {
   if (supabase) {
     const { id, ...entryData } = entry; 
-    await supabase.from('entries').insert([entry]);
+    // Supabase tự tạo ID (uuid) nếu để default, nhưng nếu mình truyền ID cũng ok nếu đúng format uuid.
+    // Tuy nhiên entry.id ở đây là string (crypto.randomUUID), nên ổn.
+    const { error } = await supabase.from('entries').insert([entry]);
+    if (error) console.error("Supabase Error (addEntry):", error);
     return;
   }
 
@@ -268,7 +302,8 @@ export const addEntry = async (entry: DiaryEntry) => {
 
 export const deleteEntry = async (id: string) => {
   if (supabase) {
-    await supabase.from('entries').delete().eq('id', id);
+    const { error } = await supabase.from('entries').delete().eq('id', id);
+    if (error) console.error("Supabase Error (deleteEntry):", error);
     return;
   }
 
