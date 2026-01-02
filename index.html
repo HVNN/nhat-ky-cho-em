@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chuyện của anh Cún</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Quicksand', sans-serif;
+        background-color: #f2f0e9;
+        background-image: radial-gradient(#d1ccc7 2px, transparent 2px);
+        background-size: 32px 32px;
+        color: #352b25;
+        font-size: 16px;
+        overflow-x: hidden;
+      }
+      
+      .font-hand {
+        font-family: 'Patrick Hand', cursive;
+      }
+
+      /* Scrollbar aesthetic */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #d6d3d1;
+        border-radius: 10px;
+        border: 2px solid #f2f0e9;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a29e;
+      }
+      
+      /* Lined Paper Effect */
+      .lined-paper {
+        background-color: #fff;
+        background-image: linear-gradient(#cbd5e1 1.5px, transparent 1.5px);
+        background-size: 100% 2.5rem;
+        line-height: 2.5rem;
+      }
+      
+      /* --- ANIMATIONS --- */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.98);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(2deg); }
+      }
+
+      @keyframes wiggle {
+        0%, 100% { transform: rotate(-3deg); }
+        50% { transform: rotate(3deg); }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0; /* Hidden initially */
+      }
+
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+      
+      .animate-wiggle-hover:hover {
+        animation: wiggle 0.5s ease-in-out infinite;
+      }
+
+      /* Washi Tape Effect */
+      .washi-tape {
+        mask-image: url("data:image/svg+xml,%3Csvg width='200' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 5 0 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10 T 110 10 T 120 10 T 130 10 T 140 10 T 150 10 T 160 10 T 170 10 T 180 10 T 190 10 T 200 10 V 30 Q 195 40 190 30 T 180 30 T 170 30 T 160 30 T 150 30 T 140 30 T 130 30 T 120 30 T 110 30 T 100 30 T 90 30 T 80 30 T 70 30 T 60 30 T 50 30 T 40 30 T 30 30 T 20 30 T 10 30 T 0 30 Z' fill='black' /%3E%3C/svg%3E");
+        mask-size: cover;
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='200' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 Q 5 0 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10 T 110 10 T 120 10 T 130 10 T 140 10 T 150 10 T 160 10 T 170 10 T 180 10 T 190 10 T 200 10 V 30 Q 195 40 190 30 T 180 30 T 170 30 T 160 30 T 150 30 T 140 30 T 130 30 T 120 30 T 110 30 T 100 30 T 90 30 T 80 30 T 70 30 T 60 30 T 50 30 T 40 30 T 30 30 T 20 30 T 10 30 T 0 30 Z' fill='black' /%3E%3C/svg%3E");
+        -webkit-mask-size: 100% 100%;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'paper': '#ffffff',
+              'paper-off': '#fffdf5',
+              'ink': '#1c1917',
+              'ink-light': '#57534e',
+              'accent': '#f43f5e',
+              'bg-warm': '#f2f0e9',
+            },
+            boxShadow: {
+              'comic': '4px 4px 0px 0px rgba(87, 83, 78, 0.15)',
+              'comic-hover': '6px 6px 0px 0px rgba(87, 83, 78, 0.2)',
+            },
+            animation: {
+              'spin-slow': 'spin 8s linear infinite',
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1?dev",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime?dev",
+    "react-dom": "https://esm.sh/react-dom@18.3.1?dev&external=react",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?dev&external=react",
+    "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react",
+    "date-fns": "https://esm.sh/date-fns@4.1.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "antd": "https://esm.sh/antd@5.22.2?bundle&external=react,react-dom",
+    "@ant-design/colors": "https://esm.sh/@ant-design/colors@7.1.0",
+    "@ant-design/icons": "https://esm.sh/@ant-design/icons@5.4.0?external=react,react-dom",
+    "dayjs": "https://esm.sh/dayjs@1.11.10",
+    "dayjs/": "https://esm.sh/dayjs@1.11.10/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
