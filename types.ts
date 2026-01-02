@@ -5,7 +5,7 @@ export interface User {
 }
 
 // Cập nhật key của mood sang theme thời tiết
-export type MoodType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'starry' | 'flower' | 'leaf' | 'rainbow';
+export type MoodType = 'rainbow' | 'starry' | 'sunny' | 'flower' | 'cloudy' | 'leaf' | 'rainy' | 'stormy';
 
 export interface DiaryEntry {
   id: string;
@@ -18,28 +18,28 @@ export interface DiaryEntry {
 
 export type Page = 'home' | 'login' | 'register' | 'write' | 'admin';
 
-// Bộ icon Thời tiết & Thiên nhiên
+// Bộ icon Thời tiết & Thiên nhiên - Sắp xếp theo phổ cảm xúc
 export const MOODS: Record<string, string> = {
-  sunny: '☀️',
-  cloudy: '☁️',
-  rainy: '🌧️',
-  stormy: '⚡',
-  starry: '✨',
-  flower: '🌻',
-  leaf: '🍂',
-  rainbow: '🌈',
+  rainbow: '🌈', // Tuyệt đỉnh
+  starry: '✨',   // Lung linh/Hy vọng
+  sunny: '☀️',   // Vui vẻ
+  flower: '🌻',   // Hạnh phúc/Nở rộ
+  cloudy: '☁️',   // Bình thường/Trầm tư
+  leaf: '🍂',     // Mệt mỏi/Rơi rụng
+  rainy: '🌧️',   // Buồn
+  stormy: '⛈️',   // Giông bão/Giận dữ (Đã cập nhật icon)
 };
 
-// Nhãn hiển thị tâm trạng ngắn gọn
+// Nhãn hiển thị tâm trạng tương ứng
 export const MOOD_LABELS: Record<string, string> = {
-  sunny: 'Vui Vẻ',
-  cloudy: 'Bình Yên',
-  rainy: 'Buồn',
-  stormy: 'Giận Dữ',
-  starry: 'Hy Vọng',
-  flower: 'Hạnh Phúc',
-  leaf: 'Mệt Mỏi',
   rainbow: 'Tuyệt Vời',
+  starry: 'Hy Vọng',
+  sunny: 'Vui Vẻ',
+  flower: 'Hạnh Phúc',
+  cloudy: 'Bình Yên',
+  leaf: 'Mệt Mỏi',
+  rainy: 'Buồn',
+  stormy: 'Giông Bão',
 };
 
 export const PASTEL_COLORS = [

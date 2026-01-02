@@ -73,7 +73,7 @@ const App: React.FC = () => {
   const [diaryContent, setDiaryContent] = useState('');
   const [diaryTitle, setDiaryTitle] = useState('');
   const [diaryDate, setDiaryDate] = useState<dayjs.Dayjs>(dayjs());
-  const [selectedMood, setSelectedMood] = useState<MoodType>('cloudy');
+  const [selectedMood, setSelectedMood] = useState<MoodType>('rainbow');
 
   // Filters & Sorting & Pagination
   const [filterUser, setFilterUser] = useState<string | null>(null);
@@ -184,7 +184,7 @@ const App: React.FC = () => {
       setDiaryContent('');
       setDiaryTitle('');
       setDiaryDate(dayjs());
-      setSelectedMood('cloudy');
+      setSelectedMood('rainbow');
   }
 
   const handleCreateEntry = async () => {
