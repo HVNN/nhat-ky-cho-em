@@ -370,7 +370,7 @@ const App: React.FC = () => {
                                         type="primary" 
                                         shape="round" 
                                         icon={<Trash2 size={16} />}
-                                        className="shadow-sm"
+                                        className="shadow-sm animate-sparkle-hover"
                                     >
                                         Xóa toàn bộ dữ liệu cũ
                                     </Button>
@@ -471,7 +471,7 @@ const App: React.FC = () => {
                             type="primary"
                             shape="circle"
                             size="large"
-                            className="w-14 h-14 shadow-comic hover:shadow-comic-hover bg-rose-400 hover:!bg-rose-500 flex items-center justify-center border-2 border-stone-800 transition-all transform hover:-translate-y-1"
+                            className="w-14 h-14 shadow-comic hover:shadow-comic-hover bg-rose-400 hover:!bg-rose-500 flex items-center justify-center border-2 border-stone-800 transition-all transform hover:-translate-y-1 animate-sparkle-hover"
                             onClick={() => setIsFilterModalOpen(true)}
                         >
                             <div className="relative">
@@ -598,7 +598,7 @@ const App: React.FC = () => {
                         htmlType="submit" 
                         block 
                         size="large"
-                        className="bg-stone-800 hover:!bg-stone-900 h-14 text-lg rounded-xl shadow-lg border-none"
+                        className="bg-stone-800 hover:!bg-stone-900 h-14 text-lg rounded-xl shadow-lg border-none animate-sparkle-hover"
                         loading={loading}
                     >
                         {page === 'login' ? 'Mở cửa' : 'Tạo sổ mới'}
@@ -714,7 +714,7 @@ const App: React.FC = () => {
                         onClick={handleCreateEntry}
                         loading={loading}
                         icon={<Heart size={20} className="fill-white" />}
-                        className="bg-stone-800 hover:!bg-stone-900 h-12 px-8 rounded-full shadow-xl font-bold border-none"
+                        className="bg-stone-800 hover:!bg-stone-900 h-12 px-8 rounded-full shadow-xl font-bold border-none animate-sparkle-hover"
                     >
                         Lưu trang viết
                     </Button>

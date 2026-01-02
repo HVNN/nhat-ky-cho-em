@@ -40,7 +40,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentPage, onLogout, 
                     type={activePage === 'write' ? 'primary' : 'default'}
                     shape="round"
                     icon={<PenTool size={16} />}
-                    className={activePage === 'write' ? 'bg-rose-500 hover:!bg-rose-600 shadow-md' : 'hover:text-rose-500'}
+                    className={`${activePage === 'write' ? 'bg-rose-500 hover:!bg-rose-600 shadow-md' : 'hover:text-rose-500'} animate-sparkle-hover`}
                   >
                     <span className="hidden sm:inline">Viết Nhật Ký</span>
                   </Button>
@@ -81,7 +81,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentUser, setCurrentPage, onLogout, 
                   shape="round"
                   onClick={() => setCurrentPage('register')}
                   icon={<UserPlus size={16} />}
-                  className="bg-stone-800 hover:!bg-stone-700 shadow-md"
+                  className="bg-stone-800 hover:!bg-stone-700 shadow-md animate-sparkle-hover"
                 >
                   Đăng Ký
                 </Button>
