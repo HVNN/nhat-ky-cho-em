@@ -330,7 +330,7 @@ const App: React.FC = () => {
                         </h1>
                         <p className="text-ink-light text-lg font-medium flex items-center justify-center gap-3">
                         <Sparkles size={18} className="text-yellow-500 fill-yellow-500 animate-pulse"/>
-                        Nơi lưu giữ những khoảnh khắc bình yên
+                        Nơi lưu giữ nỗi nhớ bé Hỏ
                         <Sparkles size={18} className="text-yellow-500 fill-yellow-500 animate-pulse"/>
                         </p>
 
