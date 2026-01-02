@@ -338,16 +338,16 @@ const App: React.FC = () => {
 
                         {/* ADMIN STATUS BADGE */}
                         {page === 'admin' && (
-                            <div className="mt-4 flex justify-center gap-4">
-                                <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-stone-200">
-                                    <span className="text-sm font-bold text-stone-500">Trạng thái:</span>
+                            <div className="mt-6 flex flex-wrap justify-center items-center gap-4">
+                                <div className="inline-flex items-center h-[42px] gap-3 bg-white px-5 rounded-full shadow-sm border border-stone-200">
+                                    <span className="text-sm font-bold text-stone-500 uppercase tracking-wider">Trạng thái:</span>
                                     {connectionType === 'SUPABASE' ? (
-                                        <Tag color="green" className="m-0 flex items-center gap-1 font-bold px-2 py-0.5 text-sm rounded-md border-0">
-                                            <Wifi size={14} /> Database (Supabase)
+                                        <Tag color="green" className="m-0 flex items-center gap-1.5 font-bold px-3 py-1 text-sm rounded-full border-0 bg-green-50 text-green-600">
+                                            <Wifi size={16} /> Database (Supabase)
                                         </Tag>
                                     ) : (
-                                        <Tag color="orange" className="m-0 flex items-center gap-1 font-bold px-2 py-0.5 text-sm rounded-md border-0">
-                                            <WifiOff size={14} /> Local Storage
+                                        <Tag color="orange" className="m-0 flex items-center gap-1.5 font-bold px-3 py-1 text-sm rounded-full border-0 bg-orange-50 text-orange-600">
+                                            <WifiOff size={16} /> Local Storage
                                         </Tag>
                                     )}
                                 </div>
@@ -369,8 +369,9 @@ const App: React.FC = () => {
                                         danger 
                                         type="primary" 
                                         shape="round" 
-                                        icon={<Trash2 size={16} />}
-                                        className="shadow-sm animate-sparkle-hover"
+                                        size="large"
+                                        icon={<Trash2 size={18} />}
+                                        className="shadow-md animate-sparkle-hover h-[42px] border-none flex items-center"
                                     >
                                         Xóa toàn bộ dữ liệu cũ
                                     </Button>
