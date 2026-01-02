@@ -21,9 +21,9 @@ export type Page = 'home' | 'login' | 'register' | 'write' | 'admin';
 // Bộ icon Thời tiết & Thiên nhiên - Sắp xếp theo phổ cảm xúc
 export const MOODS: Record<string, string> = {
   rainbow: '🌈', // Tuyệt đỉnh
-  starry: '✨',   // Lung linh/Hy vọng
   sunny: '☀️',   // Vui vẻ
   flower: '🌻',   // Hạnh phúc/Nở rộ
+  starry: '✨',   // Lung linh/Hy vọng
   cloudy: '☁️',   // Bình thường/Trầm tư
   leaf: '🍂',     // Mệt mỏi/Rơi rụng
   rainy: '🌧️',   // Buồn
