@@ -33,9 +33,9 @@ export const MOODS: Record<string, string> = {
 // Nhãn hiển thị tâm trạng tương ứng
 export const MOOD_LABELS: Record<string, string> = {
   rainbow: 'Tuyệt Vời',
-  starry: 'Hy Vọng',
   sunny: 'Vui Vẻ',
   flower: 'Hạnh Phúc',
+  starry: 'Hy Vọng',
   cloudy: 'Bình Yên',
   leaf: 'Mệt Mỏi',
   rainy: 'Buồn',
