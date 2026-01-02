@@ -24,37 +24,26 @@ create table entries (
 */
 // ============================================================================
 
-// Hàm helper để lấy biến môi trường an toàn
-const getEnv = (key: string): string => {
-  // 1. Thử lấy từ import.meta.env (Vite standard)
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    // @ts-ignore
-    return import.meta.env[key];
-  }
-  
-  // 2. Thử lấy từ process.env (nếu có polyfill hoặc môi trường khác)
-  // @ts-ignore
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    // @ts-ignore
-    return process.env[key];
-  }
+// --- LẤY BIẾN MÔI TRƯỜNG ---
+// Dựa trên cấu hình Vercel của bạn, các biến được prefix khá nhiều lớp.
+// Chúng ta sẽ ưu tiên các biến dài nhất (cụ thể nhất) trước.
 
-  return '';
-};
+// Workaround for missing Vite types
+const env = (import.meta as any).env || {};
 
-// Logic lấy URL: Ưu tiên VITE_, sau đó đến NEXT_PUBLIC_ (nếu dùng chung env), cuối cùng là tên gốc
 const SUPABASE_URL = 
-  getEnv('VITE_SUPABASE_URL') || 
-  getEnv('NEXT_PUBLIC_SUPABASE_URL') || 
-  getEnv('SUPABASE_URL'); // Fallback nếu build tool cho phép
+  env.VITE_SUPABASE_SUPABASE_URL || 
+  env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_URL ||
+  env.VITE_SUPABASE_URL || 
+  env.VITE_PUBLIC_SUPABASE_URL;
 
-// Logic lấy KEY: Ưu tiên VITE_KEY, sau đó đến các biến ANON_KEY thường gặp
 const SUPABASE_KEY = 
-  getEnv('VITE_SUPABASE_KEY') || 
-  getEnv('VITE_SUPABASE_ANON_KEY') || 
-  getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || 
-  getEnv('SUPABASE_ANON_KEY'); 
+  env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_ANON_KEY ||
+  env.VITE_SUPABASE_SUPABASE_ANON_KEY ||
+  env.VITE_SUPABASE_SUPABASE_PUBLISHABLE_KEY ||
+  env.VITE_SUPABASE_ANON_KEY || 
+  env.VITE_SUPABASE_KEY || 
+  env.VITE_PUBLIC_SUPABASE_ANON_KEY;
 
 let supabase: any = null;
 
@@ -63,11 +52,22 @@ if (SUPABASE_URL && SUPABASE_KEY) {
   try {
       supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
       console.log('✅ Kết nối Supabase thành công');
+      console.log('🔗 URL:', SUPABASE_URL);
   } catch (error) {
       console.error('❌ Lỗi khởi tạo Supabase:', error);
   }
 } else {
-    console.log('ℹ️ Chưa tìm thấy cấu hình Supabase, sử dụng LocalStorage.');
+    // Debug log chi tiết để bạn kiểm tra F12
+    console.log('ℹ️ Ứng dụng đang dùng LocalStorage.');
+    console.log('--- Debug Variables (Check your .env or Vercel Settings) ---');
+    console.log('URL found?', !!SUPABASE_URL);
+    console.log('KEY found?', !!SUPABASE_KEY);
+    
+    // In ra trạng thái của các biến cụ thể trong danh sách của bạn để debug
+    console.log('Debug specific keys:');
+    console.log('VITE_SUPABASE_SUPABASE_URL:', !!env.VITE_SUPABASE_SUPABASE_URL);
+    console.log('VITE_SUPABASE_VITE_PUBLIC_SUPABASE_URL:', !!env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_URL);
+    console.log('VITE_SUPABASE_VITE_PUBLIC_SUPABASE_ANON_KEY:', !!env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_ANON_KEY);
 }
 
 const USERS_KEY = 'diary_users';
