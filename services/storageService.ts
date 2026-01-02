@@ -2,32 +2,38 @@ import { DiaryEntry, User, PASTEL_COLORS, MoodType } from '../types';
 import { createClient } from '@supabase/supabase-js';
 
 // ============================================================================
-// HƯỚNG DẪN TẠO BẢNG TRÊN SUPABASE (SQL EDITOR)
-// Copy đoạn code dưới đây và chạy trong SQL Editor của Supabase để tạo bảng:
+// ⚠️ QUAN TRỌNG: BẠN CẦN CHẠY CODE SQL SAU TRONG SUPABASE SQL EDITOR ⚠️
+// ============================================================================
 /*
 -- 1. Tạo bảng Users
-create table users (
-  username text primary key,
-  "isAdmin" boolean default false,
+CREATE TABLE IF NOT EXISTS public.users (
+  username text PRIMARY KEY,
+  "isAdmin" boolean DEFAULT false,
   "avatarColor" text
 );
 
 -- 2. Tạo bảng Entries
-create table entries (
-  id uuid primary key default gen_random_uuid(),
-  username text references users(username) on delete cascade,
+CREATE TABLE IF NOT EXISTS public.entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  username text REFERENCES public.users(username) ON DELETE CASCADE,
   title text,
   content text,
   mood text,
-  "createdAt" timestamptz default now()
+  "createdAt" timestamptz DEFAULT now()
 );
+
+-- 3. Bật bảo mật (Row Level Security)
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.entries ENABLE ROW LEVEL SECURITY;
+
+-- 4. Tạo Policy (Mở quyền truy cập cho App)
+-- Do App này tự quản lý đăng nhập, ta cần mở quyền cho public (anon key) truy cập 2 bảng này
+CREATE POLICY "Public Access Users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public Access Entries" ON public.entries FOR ALL USING (true) WITH CHECK (true);
 */
 // ============================================================================
 
 // --- LẤY BIẾN MÔI TRƯỜNG ---
-// Dựa trên cấu hình Vercel của bạn, các biến được prefix khá nhiều lớp.
-// Chúng ta sẽ ưu tiên các biến dài nhất (cụ thể nhất) trước.
-
 // Workaround for missing Vite types
 const env = (import.meta as any).env || {};
 
@@ -51,23 +57,12 @@ let supabase: any = null;
 if (SUPABASE_URL && SUPABASE_KEY) {
   try {
       supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log('✅ Kết nối Supabase thành công');
-      console.log('🔗 URL:', SUPABASE_URL);
+      console.log('✅ Đã kết nối Supabase Client');
   } catch (error) {
       console.error('❌ Lỗi khởi tạo Supabase:', error);
   }
 } else {
-    // Debug log chi tiết để bạn kiểm tra F12
-    console.log('ℹ️ Ứng dụng đang dùng LocalStorage.');
-    console.log('--- Debug Variables (Check your .env or Vercel Settings) ---');
-    console.log('URL found?', !!SUPABASE_URL);
-    console.log('KEY found?', !!SUPABASE_KEY);
-    
-    // In ra trạng thái của các biến cụ thể trong danh sách của bạn để debug
-    console.log('Debug specific keys:');
-    console.log('VITE_SUPABASE_SUPABASE_URL:', !!env.VITE_SUPABASE_SUPABASE_URL);
-    console.log('VITE_SUPABASE_VITE_PUBLIC_SUPABASE_URL:', !!env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_URL);
-    console.log('VITE_SUPABASE_VITE_PUBLIC_SUPABASE_ANON_KEY:', !!env.VITE_SUPABASE_VITE_PUBLIC_SUPABASE_ANON_KEY);
+    console.log('ℹ️ Chưa có cấu hình Supabase. Chuyển sang dùng LocalStorage.');
 }
 
 const USERS_KEY = 'diary_users';
@@ -211,6 +206,10 @@ export const getUsers = async (): Promise<User[]> => {
     const { data, error } = await supabase.from('users').select('*');
     if (error) {
         console.error("Supabase Error (getUsers):", error);
+        // Nếu lỗi là 'relation "public.users" does not exist', nghĩa là chưa tạo bảng
+        if (error.code === '42P01') {
+            console.warn("⚠️ BẢNG 'users' CHƯA ĐƯỢC TẠO TRONG SUPABASE. HÃY CHẠY LỆNH SQL.");
+        }
         return [];
     }
     return data || [];
@@ -224,11 +223,17 @@ export const registerUser = async (username: string): Promise<{ success: boolean
   const newUser: User = { username, isAdmin: false, avatarColor: randomColor };
 
   if (supabase) {
-    const { data: existing } = await supabase.from('users').select('*').eq('username', username).single();
+    const { data: existing, error: checkError } = await supabase.from('users').select('*').eq('username', username).single();
+    
+    // Nếu lỗi checkError là 42P01 thì là chưa có bảng
+    if (checkError && checkError.code === '42P01') {
+        return { success: false, message: 'Lỗi: Chưa tạo bảng Users trong Database!' };
+    }
+
     if (existing) return { success: false, message: 'Tên này đã có người dùng rồi!' };
     
     const { error } = await supabase.from('users').insert([newUser]);
-    if (error) return { success: false, message: 'Lỗi kết nối server: ' + error.message };
+    if (error) return { success: false, message: 'Lỗi Server: ' + error.message };
     return { success: true, message: 'Đăng ký thành công!' };
   }
 
@@ -281,6 +286,9 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
     const { data, error } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
     if (error) {
         console.error("Supabase Error (getEntries):", error);
+        if (error.code === '42P01') {
+             console.warn("⚠️ BẢNG 'entries' CHƯA ĐƯỢC TẠO.");
+        }
         return [];
     }
     return data || [];
@@ -295,7 +303,10 @@ export const addEntry = async (entry: DiaryEntry) => {
     // Supabase tự tạo ID (uuid) nếu để default, nhưng nếu mình truyền ID cũng ok nếu đúng format uuid.
     // Tuy nhiên entry.id ở đây là string (crypto.randomUUID), nên ổn.
     const { error } = await supabase.from('entries').insert([entry]);
-    if (error) console.error("Supabase Error (addEntry):", error);
+    if (error) {
+        console.error("Supabase Error (addEntry):", error);
+        alert("Không lưu được nhật ký. Lỗi: " + error.message);
+    }
     return;
   }
 
