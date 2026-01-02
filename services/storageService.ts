@@ -15,7 +15,7 @@ create table users (
 -- 2. Tạo bảng Entries
 create table entries (
   id uuid primary key default gen_random_uuid(),
-  username text references users(username),
+  username text references users(username) on delete cascade,
   title text,
   content text,
   mood text,
@@ -73,6 +73,11 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 const USERS_KEY = 'diary_users';
 const ENTRIES_KEY = 'diary_entries';
 const CURRENT_USER_KEY = 'diary_current_user';
+
+// --- HELPERS STATUS ---
+export const getConnectionType = (): 'SUPABASE' | 'LOCAL_STORAGE' => {
+    return supabase ? 'SUPABASE' : 'LOCAL_STORAGE';
+};
 
 // --- INIT ---
 export const initStorage = async () => {
@@ -287,7 +292,6 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
 
 export const addEntry = async (entry: DiaryEntry) => {
   if (supabase) {
-    const { id, ...entryData } = entry; 
     // Supabase tự tạo ID (uuid) nếu để default, nhưng nếu mình truyền ID cũng ok nếu đúng format uuid.
     // Tuy nhiên entry.id ở đây là string (crypto.randomUUID), nên ổn.
     const { error } = await supabase.from('entries').insert([entry]);
@@ -310,4 +314,46 @@ export const deleteEntry = async (id: string) => {
   const entries = await getEntries();
   const newEntries = entries.filter(e => e.id !== id);
   localStorage.setItem(ENTRIES_KEY, JSON.stringify(newEntries));
+};
+
+// --- ADMIN DANGEROUS OPERATIONS ---
+export const clearAllData = async (excludeUsername?: string) => {
+    if (supabase) {
+        // 1. Xóa tất cả entries (Nhật ký)
+        // Để xóa tất cả trong Supabase-js, cần có 1 điều kiện. 'id' is not null hoặc 'id' != '0' (giả định UUID)
+        const { error: errorEntries } = await supabase.from('entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (errorEntries) {
+            console.error("Lỗi xóa entries:", errorEntries);
+            throw new Error(errorEntries.message);
+        }
+
+        // 2. Xóa tất cả users TRỪ admin hiện tại
+        if (excludeUsername) {
+            const { error: errorUsers } = await supabase.from('users').delete().neq('username', excludeUsername);
+            if (errorUsers) {
+                console.error("Lỗi xóa users:", errorUsers);
+                throw new Error(errorUsers.message);
+            }
+        } else {
+             const { error: errorUsers } = await supabase.from('users').delete().neq('username', 'PLACEHOLDER_IMPOSSIBLE');
+             if (errorUsers) throw new Error(errorUsers.message);
+        }
+        
+        return;
+    }
+
+    // Local Storage
+    localStorage.removeItem(ENTRIES_KEY);
+    // Lọc lại user list, chỉ giữ lại current user
+    if (excludeUsername) {
+        const users = await getUsers();
+        const currentUserObj = users.find(u => u.username === excludeUsername);
+        if (currentUserObj) {
+            localStorage.setItem(USERS_KEY, JSON.stringify([currentUserObj]));
+        } else {
+            localStorage.removeItem(USERS_KEY);
+        }
+    } else {
+        localStorage.removeItem(USERS_KEY);
+    }
 };

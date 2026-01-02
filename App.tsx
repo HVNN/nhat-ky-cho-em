@@ -3,8 +3,8 @@ import { User, DiaryEntry, Page, MOODS, MOOD_LABELS, MoodType } from './types';
 import * as storage from './services/storageService';
 import Navbar from './components/Navbar';
 import TreeTimeline from './components/TreeTimeline';
-import { Search, Heart, Sparkles, Cloud, Star, ArrowDownWideNarrow, ArrowUpWideNarrow, Loader2, ArrowUp, SlidersHorizontal, Calendar as CalendarIcon } from 'lucide-react';
-import { ConfigProvider, Button, Input, Select, DatePicker, message, Spin, Modal, Tooltip } from 'antd';
+import { Search, Heart, Sparkles, Cloud, Star, ArrowDownWideNarrow, ArrowUpWideNarrow, Loader2, ArrowUp, SlidersHorizontal, Calendar as CalendarIcon, Trash2, Database, Wifi, WifiOff } from 'lucide-react';
+import { ConfigProvider, Button, Input, Select, DatePicker, message, Spin, Modal, Tooltip, Tag, Popconfirm } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi'; 
 
@@ -63,6 +63,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   
+  // Connection Status
+  const [connectionType, setConnectionType] = useState<'SUPABASE' | 'LOCAL_STORAGE'>('LOCAL_STORAGE');
+
   // Form States
   const [usernameInput, setUsernameInput] = useState('');
   
@@ -88,6 +91,9 @@ const App: React.FC = () => {
   useEffect(() => {
     loadInitialData();
     
+    // Check connection type
+    setConnectionType(storage.getConnectionType());
+
     // Scroll event listener for toggling Floating Controls
     const handleScroll = () => {
         // Hiện nút sớm hơn: > 200px
@@ -219,6 +225,21 @@ const App: React.FC = () => {
     messageApi.success('Đã xóa dòng nhật ký.');
   };
 
+  const handleClearAllData = async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    try {
+        // Chỉ giữ lại user hiện tại để không bị logout
+        await storage.clearAllData(currentUser.username);
+        await refreshData();
+        messageApi.success('Đã xóa sạch dữ liệu cũ!');
+    } catch (error: any) {
+        messageApi.error('Lỗi khi xóa dữ liệu: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   const scrollToTop = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -314,6 +335,48 @@ const App: React.FC = () => {
                         Nơi lưu giữ những khoảnh khắc bình yên
                         <Sparkles size={18} className="text-yellow-500 fill-yellow-500 animate-pulse"/>
                         </p>
+
+                        {/* ADMIN STATUS BADGE */}
+                        {page === 'admin' && (
+                            <div className="mt-4 flex justify-center gap-4">
+                                <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-stone-200">
+                                    <span className="text-sm font-bold text-stone-500">Trạng thái:</span>
+                                    {connectionType === 'SUPABASE' ? (
+                                        <Tag color="green" className="m-0 flex items-center gap-1 font-bold px-2 py-0.5 text-sm rounded-md border-0">
+                                            <Wifi size={14} /> Database (Supabase)
+                                        </Tag>
+                                    ) : (
+                                        <Tag color="orange" className="m-0 flex items-center gap-1 font-bold px-2 py-0.5 text-sm rounded-md border-0">
+                                            <WifiOff size={14} /> Local Storage
+                                        </Tag>
+                                    )}
+                                </div>
+
+                                <Popconfirm
+                                    title="Xóa sạch dữ liệu?"
+                                    description={
+                                        <div className="max-w-[250px]">
+                                            <p>Hành động này sẽ xóa <strong>toàn bộ nhật ký</strong> của tất cả mọi người và các tài khoản người dùng khác.</p>
+                                            <p className="mt-2 text-rose-500 italic">Dữ liệu sẽ không thể khôi phục!</p>
+                                        </div>
+                                    }
+                                    onConfirm={handleClearAllData}
+                                    okText="Xóa hết đi"
+                                    cancelText="Thôi đừng"
+                                    okButtonProps={{ danger: true, size: 'large' }}
+                                >
+                                    <Button 
+                                        danger 
+                                        type="primary" 
+                                        shape="round" 
+                                        icon={<Trash2 size={16} />}
+                                        className="shadow-sm"
+                                    >
+                                        Xóa toàn bộ dữ liệu cũ
+                                    </Button>
+                                </Popconfirm>
+                            </div>
+                        )}
                     </div>
 
                     {/* 1. TOP STATIC FILTER BAR (Visbile when at top) */}
