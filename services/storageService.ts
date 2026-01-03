@@ -110,6 +110,19 @@ export const addEntry = async (entry: DiaryEntry) => {
   localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
 };
 
+export const updateEntry = async (id: string, updatedData: Partial<DiaryEntry>) => {
+  if (supabase) {
+    await supabase.from('entries').update(updatedData).eq('id', id);
+    return;
+  }
+  const entries = await getEntries();
+  const index = entries.findIndex(e => e.id === id);
+  if (index !== -1) {
+    entries[index] = { ...entries[index], ...updatedData };
+    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+  }
+};
+
 export const deleteEntry = async (id: string) => {
   if (supabase) {
     await supabase.from('entries').delete().eq('id', id);
@@ -132,9 +145,6 @@ export const clearAllData = async (excludeUsername?: string) => {
     localStorage.setItem(USERS_KEY, JSON.stringify(adminUsers));
 };
 
-/**
- * Hàm tạo dữ liệu mẫu để test giao diện
- */
 export const seedData = async () => {
     const sampleUsers = [
         { username: 'Mây Lang Thang', avatarColor: 'bg-sky-100' },
@@ -154,9 +164,6 @@ export const seedData = async () => {
         { title: "Vườn hoa nhỏ", content: "Sáng nay mình vừa trồng thêm vài khóm hoa trước cửa. Mong chúng sẽ sớm nở rộ.", mood: "flower" }
     ];
 
-    const moodKeys = Object.keys(MOODS) as MoodType[];
-
-    // 1. Đăng ký các user mẫu
     for (const u of sampleUsers) {
         if (supabase) {
             const { data: existing } = await supabase.from('users').select('*').eq('username', u.username).single();
@@ -170,13 +177,12 @@ export const seedData = async () => {
         }
     }
 
-    // 2. Tạo 15 bài viết rải rác trong 10 ngày qua
     const allUsers = [...sampleUsers.map(u => u.username), 'Saitama'];
     for (let i = 0; i < 15; i++) {
         const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
         const randomContent = sampleContents[Math.floor(Math.random() * sampleContents.length)];
         const randomDate = new Date();
-        randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 10)); // Lùi về 0-10 ngày trước
+        randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 10)); 
         
         const entry: DiaryEntry = {
             id: crypto.randomUUID(),

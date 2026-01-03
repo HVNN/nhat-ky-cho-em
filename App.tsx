@@ -3,7 +3,7 @@ import { User, DiaryEntry, Page, MOODS, MOOD_LABELS, MoodType } from './types';
 import * as storage from './services/storageService';
 import Navbar from './components/Navbar';
 import TreeTimeline from './components/TreeTimeline';
-import { Search, Heart, Sparkles, Cloud, Star, ArrowDownWideNarrow, ArrowUpWideNarrow, Loader2, ArrowUp, SlidersHorizontal, Calendar as CalendarIcon, Trash2, Database, Wifi, WifiOff, Wand2 } from 'lucide-react';
+import { Search, Heart, Sparkles, Cloud, Star, ArrowDownWideNarrow, ArrowUpWideNarrow, Loader2, ArrowUp, SlidersHorizontal, Calendar as CalendarIcon, Trash2, Database, Wifi, WifiOff, Wand2, Edit3 } from 'lucide-react';
 import { ConfigProvider, Button, Input, Select, DatePicker, message, Spin, Modal, Tooltip, Tag, Popconfirm } from 'antd';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi'; 
@@ -25,10 +25,9 @@ dayjs.extend(weekYear);
 
 dayjs.locale('vi');
 
-// Define Ant Design Theme
 const customTheme = {
   token: {
-    colorPrimary: '#f43f5e', // Rose 500
+    colorPrimary: '#f43f5e',
     fontFamily: "'Quicksand', sans-serif",
     borderRadius: 16,
     colorText: '#352b25',
@@ -47,7 +46,7 @@ const customTheme = {
         controlHeight: 42,
     },
     Modal: {
-        contentBg: '#fffdf5', // paper-off
+        contentBg: '#fffdf5',
         headerBg: '#fffdf5',
     }
   }
@@ -63,13 +62,11 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   
-  // Connection Status
   const [connectionType, setConnectionType] = useState<'SUPABASE' | 'LOCAL_STORAGE'>('LOCAL_STORAGE');
-
-  // Form States
   const [usernameInput, setUsernameInput] = useState('');
   
-  // Create Entry States
+  // Create/Edit Entry States
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [diaryContent, setDiaryContent] = useState('');
   const [diaryTitle, setDiaryTitle] = useState('');
   const [diaryDate, setDiaryDate] = useState<dayjs.Dayjs>(dayjs());
@@ -81,11 +78,9 @@ const App: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   
-  // UI States for Floating Controls
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [showFloatingControls, setShowFloatingControls] = useState(false);
 
-  // Infinite Scroll Ref
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -185,30 +180,63 @@ const App: React.FC = () => {
       setDiaryTitle('');
       setDiaryDate(dayjs());
       setSelectedMood('rainbow');
-  }
+      setEditingId(null);
+  };
 
-  const handleCreateEntry = async () => {
+  const handleSaveEntry = async () => {
     if (!currentUser || !diaryContent.trim()) {
         messageApi.warning('Hãy viết gì đó vào nhật ký nhé!');
         return;
     }
 
     setLoading(true);
+    
+    // Xử lý logic 00:00 - Đồng bộ giờ hiện tại vào ngày được chọn cho bài viết MỚI
+    // Nếu là bài cũ (đang edit), giữ nguyên giờ của nó trừ khi người dùng chọn ngày khác
+    let finalDateTime = diaryDate;
+    
+    if (!editingId) {
+        // Chỉ gán giờ hiện tại cho bài viết mới để tránh lỗi 00:00
+        const now = dayjs();
+        finalDateTime = diaryDate.hour(now.hour()).minute(now.minute()).second(now.second());
+    }
+    
     const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${diaryDate.format('DD/MM/YYYY')}`;
-    const newEntry: DiaryEntry = {
-      id: crypto.randomUUID(),
-      username: currentUser.username,
-      title: finalTitle,
-      content: diaryContent,
-      mood: selectedMood,
-      createdAt: diaryDate.toISOString()
-    };
-    await storage.addEntry(newEntry);
+
+    if (editingId) {
+        await storage.updateEntry(editingId, {
+            title: finalTitle,
+            content: diaryContent,
+            mood: selectedMood,
+            createdAt: finalDateTime.toISOString()
+        });
+        messageApi.success('Đã cập nhật dòng tâm sự...');
+    } else {
+        const newEntry: DiaryEntry = {
+          id: crypto.randomUUID(),
+          username: currentUser.username,
+          title: finalTitle,
+          content: diaryContent,
+          mood: selectedMood,
+          createdAt: finalDateTime.toISOString()
+        };
+        await storage.addEntry(newEntry);
+        messageApi.success('Đã lưu lại dòng tâm sự mới...');
+    }
+
     resetWriteForm();
     await refreshData();
     setPage('home');
     setLoading(false);
-    messageApi.success('Đã lưu lại dòng tâm sự...');
+  };
+
+  const handleEditEntry = (entry: DiaryEntry) => {
+    setEditingId(entry.id);
+    setDiaryTitle(entry.title || '');
+    setDiaryContent(entry.content);
+    setDiaryDate(dayjs(entry.createdAt));
+    setSelectedMood(entry.mood);
+    setPage('write');
   };
 
   const handleDeleteEntry = async (id: string) => {
@@ -238,7 +266,7 @@ const App: React.FC = () => {
     try {
         await storage.seedData();
         await refreshData();
-        messageApi.success('Đã rải 15 trang nhật ký mẫu khắp nơi rồi đó! ✨');
+        messageApi.success('Đã tạo 15 trang nhật ký mẫu! ✨');
     } catch (error: any) {
         messageApi.error('Lỗi khi tạo dữ liệu mẫu: ' + error.message);
     } finally {
@@ -308,7 +336,10 @@ const App: React.FC = () => {
 
         <Navbar 
             currentUser={currentUser} 
-            setCurrentPage={setPage} 
+            setCurrentPage={(p) => { 
+                if (p === 'write') resetWriteForm();
+                setPage(p); 
+            }} 
             onLogout={handleLogout}
             activePage={page}
         />
@@ -330,7 +361,7 @@ const App: React.FC = () => {
                         </h1>
                         <p className="text-ink-light text-lg font-medium flex items-center justify-center gap-3">
                         <Sparkles size={18} className="text-yellow-500 fill-yellow-500 animate-pulse"/>
-                        Nơi lưu giữ nỗi nhớ bé Hỏ
+                        Nơi lưu giữ những khoảnh khắc bình yên
                         <Sparkles size={18} className="text-yellow-500 fill-yellow-500 animate-pulse"/>
                         </p>
 
@@ -362,12 +393,7 @@ const App: React.FC = () => {
 
                                 <Popconfirm
                                     title="Xóa sạch dữ liệu?"
-                                    description={
-                                        <div className="max-w-[250px]">
-                                            <p>Hành động này sẽ xóa <strong>toàn bộ nhật ký</strong> và các tài khoản người dùng thường.</p>
-                                            <p className="mt-2 text-rose-500 italic">Dữ liệu sẽ không thể khôi phục!</p>
-                                        </div>
-                                    }
+                                    description="Hành động này sẽ xóa toàn bộ nhật ký."
                                     onConfirm={handleClearAllData}
                                     okText="Xóa hết đi"
                                     cancelText="Thôi đừng"
@@ -439,6 +465,7 @@ const App: React.FC = () => {
                             users={users} 
                             currentUser={currentUser}
                             onDelete={handleDeleteEntry}
+                            onEdit={handleEditEntry}
                         />
                     </div>
 
@@ -449,12 +476,6 @@ const App: React.FC = () => {
                             Đang tìm lại ký ức cũ...
                         </div>
                     </div>
-                    )}
-                    
-                    {!hasMore && entries.length > 0 && (
-                        <div className="text-center py-8 text-stone-400 font-hand text-xl italic">
-                            ~ Hết rồi, chỉ còn lại kỷ niệm thôi ~
-                        </div>
                     )}
                 </div>
 
@@ -544,7 +565,7 @@ const App: React.FC = () => {
                 <div className="ml-8 md:ml-12 flex flex-col items-start mb-8 pb-4 relative z-10">
                     <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div className="w-full md:w-2/3">
-                            <input type="text" placeholder="Tiêu đề nhật ký (ví dụ: Ngày nắng đẹp...)" value={diaryTitle} onChange={(e) => setDiaryTitle(e.target.value)} className="w-full bg-transparent border-b-2 border-dashed border-stone-300 font-hand text-3xl text-ink font-bold placeholder:text-stone-300 focus:outline-none focus:border-rose-400 pb-2 transition-colors" />
+                            <input type="text" placeholder="Tiêu đề nhật ký..." value={diaryTitle} onChange={(e) => setDiaryTitle(e.target.value)} className="w-full bg-transparent border-b-2 border-dashed border-stone-300 font-hand text-3xl text-ink font-bold placeholder:text-stone-300 focus:outline-none focus:border-rose-400 pb-2 transition-colors" />
                              <div className="mt-2 flex items-center gap-2">
                                 <span className="text-stone-500 font-hand text-xl">Ngày:</span>
                                 <DatePicker value={diaryDate} onChange={(date) => setDiaryDate(date || dayjs())} format="DD/MM/YYYY" allowClear={false} className="bg-transparent border-none shadow-none font-hand text-lg text-rose-500 font-bold p-0 cursor-pointer hover:bg-stone-50 px-2 rounded-lg" />
@@ -564,12 +585,15 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="ml-8 md:ml-12 relative z-10 mt-2">
-                    <textarea value={diaryContent} onChange={(e) => setDiaryContent(e.target.value)} placeholder="Hãy kể cho mình nghe mọi chuyện..." className="w-full h-[40vh] bg-transparent font-hand text-[1.5rem] md:text-[1.75rem] text-ink outline-none resize-none leading-[2.5rem] placeholder:text-stone-300" autoFocus />
+                {/* layout fix: pb-40 để đảm bảo không bị nút "Lưu" che khuất dòng chữ cuối khi viết dài */}
+                <div className="ml-8 md:ml-12 relative z-10 mt-2 pb-40">
+                    <textarea value={diaryContent} onChange={(e) => setDiaryContent(e.target.value)} placeholder="Hãy kể cho mình nghe mọi chuyện..." className="w-full h-[45vh] bg-transparent font-hand text-[1.5rem] md:text-[1.75rem] text-ink outline-none resize-none leading-[2.5rem] placeholder:text-stone-300" autoFocus />
                 </div>
-                <div className="fixed bottom-6 right-6 md:right-12 flex gap-3 z-50 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                    <Button size="large" onClick={() => setPage('home')} className="h-12 px-6 rounded-full border-2 border-stone-200 font-bold">Hủy bỏ</Button>
-                    <Button type="primary" size="large" onClick={handleCreateEntry} loading={loading} icon={<Heart size={20} className="fill-white" />} className="bg-stone-800 hover:!bg-stone-900 h-12 px-8 rounded-full shadow-xl font-bold border-none animate-sparkle-hover">Lưu trang viết</Button>
+                <div className="fixed bottom-6 right-6 md:right-12 flex gap-3 z-50 animate-fade-in-up">
+                    <Button size="large" onClick={() => { setPage('home'); resetWriteForm(); }} className="h-12 px-6 rounded-full border-2 border-stone-200 font-bold">Hủy bỏ</Button>
+                    <Button type="primary" size="large" onClick={handleSaveEntry} loading={loading} icon={<Heart size={20} className="fill-white" />} className="bg-stone-800 hover:!bg-stone-900 h-12 px-8 rounded-full shadow-xl font-bold border-none animate-sparkle-hover">
+                        {editingId ? 'Cập nhật bài viết' : 'Lưu trang viết'}
+                    </Button>
                 </div>
                 </div>
             </div>
