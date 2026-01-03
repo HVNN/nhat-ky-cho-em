@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { DiaryEntry, User, MOODS, MOOD_LABELS } from '../types';
-import { format, isValid, parseISO } from 'date-fns';
+// Fixed: Removed parseISO from date-fns as it was causing an error and can be replaced with the native Date constructor for ISO strings
+import { format, isValid } from 'date-fns';
 import { Trash2, Calendar, ChevronDown, ChevronUp, Star, Cloud, Heart, Flower, Sprout, Leaf, Edit3 } from 'lucide-react';
 import { Button, Popconfirm, Tooltip } from 'antd';
 
@@ -10,9 +12,10 @@ interface TreeTimelineProps {
   currentUser: User | null;
   onDelete: (id: string) => void;
   onEdit: (entry: DiaryEntry) => void;
+  sortOrder: 'desc' | 'asc';
 }
 
-const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser, onDelete, onEdit }) => {
+const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser, onDelete, onEdit, sortOrder }) => {
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   // Group entries by date
@@ -23,7 +26,12 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
     return acc;
   }, {} as Record<string, DiaryEntry[]>);
 
-  const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  // Sort dates based on sortOrder
+  const sortedDates = Object.keys(groupedEntries).sort((a, b) => {
+    const timeA = new Date(a).getTime();
+    const timeB = new Date(b).getTime();
+    return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+  });
 
   const getUserColor = (username: string) => {
     const user = users.find(u => u.username === username);
@@ -42,10 +50,10 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
 
   const getSticker = (id: string) => {
     const stickers = [
-      <Star size={24} className="text-yellow-400 fill-yellow-200" />,
-      <Cloud size={24} className="text-sky-400 fill-sky-100" />,
-      <Heart size={24} className="text-rose-400 fill-rose-200" />,
-      <Flower size={24} className="text-purple-400 fill-purple-200" />
+      <Star size={24} key="star" className="text-yellow-400 fill-yellow-200" />,
+      <Cloud size={24} key="cloud" className="text-sky-400 fill-sky-100" />,
+      <Heart size={24} key="heart" className="text-rose-400 fill-rose-200" />,
+      <Flower size={24} key="flower" className="text-purple-400 fill-purple-200" />
     ];
     const index = id.charCodeAt(id.length - 1) % 6; 
     if (index >= stickers.length) return null;
@@ -87,7 +95,8 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
                 ? entry.content.slice(0, 400) + '...' 
                 : entry.content;
 
-              const entryDate = parseISO(entry.createdAt);
+              // Fixed: Replaced parseISO(entry.createdAt) with new Date(entry.createdAt)
+              const entryDate = new Date(entry.createdAt);
               const timeDisplay = isValid(entryDate) ? format(entryDate, 'HH:mm') : '--:--';
 
               return (

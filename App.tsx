@@ -463,6 +463,7 @@ const App: React.FC = () => {
                             currentUser={currentUser}
                             onDelete={handleDeleteEntry}
                             onEdit={handleEditEntry}
+                            sortOrder={sortOrder}
                         />
                     </div>
 
