@@ -191,17 +191,14 @@ const App: React.FC = () => {
 
     setLoading(true);
     
-    // Xử lý logic 00:00 - Đồng bộ giờ hiện tại vào ngày được chọn cho bài viết MỚI
-    // Nếu là bài cũ (đang edit), giữ nguyên giờ của nó trừ khi người dùng chọn ngày khác
+    // Xử lý logic 00:00: Nếu DatePicker trả về ngày mà không có giờ (mặc định là 00:00), ta lấy giờ hiện tại
     let finalDateTime = diaryDate;
-    
-    if (!editingId) {
-        // Chỉ gán giờ hiện tại cho bài viết mới để tránh lỗi 00:00
+    if (diaryDate.hour() === 0 && diaryDate.minute() === 0) {
         const now = dayjs();
         finalDateTime = diaryDate.hour(now.hour()).minute(now.minute()).second(now.second());
     }
     
-    const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${diaryDate.format('DD/MM/YYYY')}`;
+    const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${finalDateTime.format('DD/MM/YYYY')}`;
 
     if (editingId) {
         await storage.updateEntry(editingId, {
