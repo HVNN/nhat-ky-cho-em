@@ -191,13 +191,8 @@ const App: React.FC = () => {
 
     setLoading(true);
     
-    // Xử lý logic 00:00: Nếu DatePicker trả về ngày mà không có giờ (mặc định là 00:00), ta lấy giờ hiện tại
-    let finalDateTime = diaryDate;
-    if (diaryDate.hour() === 0 && diaryDate.minute() === 0) {
-        const now = dayjs();
-        finalDateTime = diaryDate.hour(now.hour()).minute(now.minute()).second(now.second());
-    }
-    
+    // finalDateTime giờ đây sử dụng trực tiếp diaryDate bao gồm cả ngày và giờ từ picker
+    const finalDateTime = diaryDate;
     const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${finalDateTime.format('DD/MM/YYYY')}`;
 
     if (editingId) {
@@ -565,8 +560,16 @@ const App: React.FC = () => {
                         <div className="w-full md:w-2/3">
                             <input type="text" placeholder="Tiêu đề nhật ký..." value={diaryTitle} onChange={(e) => setDiaryTitle(e.target.value)} className="w-full bg-transparent border-b-2 border-dashed border-stone-300 font-hand text-3xl text-ink font-bold placeholder:text-stone-300 focus:outline-none focus:border-rose-400 pb-2 transition-colors" />
                              <div className="mt-2 flex items-center gap-2">
-                                <span className="text-stone-500 font-hand text-xl">Ngày:</span>
-                                <DatePicker value={diaryDate} onChange={(date) => setDiaryDate(date || dayjs())} format="DD/MM/YYYY" allowClear={false} className="bg-transparent border-none shadow-none font-hand text-lg text-rose-500 font-bold p-0 cursor-pointer hover:bg-stone-50 px-2 rounded-lg" />
+                                <span className="text-stone-500 font-hand text-xl">Thời gian:</span>
+                                <DatePicker 
+                                    value={diaryDate} 
+                                    onChange={(date) => setDiaryDate(date || dayjs())} 
+                                    format="DD/MM/YYYY HH:mm" 
+                                    showTime={{ format: 'HH:mm' }}
+                                    allowClear={false} 
+                                    className="bg-transparent border-none shadow-none font-hand text-lg text-rose-50 font-bold p-0 cursor-pointer hover:bg-stone-50 px-2 rounded-lg" 
+                                    style={{ color: '#f43f5e' }}
+                                />
                              </div>
                         </div>
                          <div className="text-5xl animate-float self-end md:self-center">{MOODS[selectedMood]}</div>
