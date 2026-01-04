@@ -142,7 +142,7 @@ const App: React.FC = () => {
   // Filters & Sorting & Pagination
   const [filterUser, setFilterUser] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState<dayjs.Dayjs | null>(null);
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('asc');
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
