@@ -56,21 +56,26 @@ const ITEMS_PER_PAGE = 10;
 
 // Component hiển thị bóng bay bay lơ lửng ở background
 const BalloonsBackground: React.FC = () => {
-    // Giảm số lượng bóng bay xuống
-    const balloonCount = 6;
+    // Tăng nhẹ số lượng để màn hình không bị trống, nhưng dàn trải rộng
+    const balloonCount = 8;
     
     const balloons = useMemo(() => {
-        return [...Array(balloonCount)].map((_, i) => ({
-            id: i,
-            color: PASTEL_COLORS[i % PASTEL_COLORS.length],
-            // Random hóa các tham số animation
-            delay: Math.random() * 15, // Thời gian trễ khi bắt đầu
-            duration: 25 + Math.random() * 15, // Tốc độ bay lên (càng lớn càng chậm)
-            swayDuration: 3 + Math.random() * 2, // Tốc độ lắc lư của thân bóng
-            stringDuration: 1.5 + Math.random(), // Tốc độ đung đưa của dây
-            left: Math.random() * 60 - 10, // Vị trí xuất phát (thiên về bên trái màn hình)
-            scale: 0.7 + Math.random() * 0.4, // Kích thước to nhỏ khác nhau
-        }));
+        return [...Array(balloonCount)].map((_, i) => {
+            const duration = 30 + Math.random() * 30; // 30s đến 60s cho mỗi lần bay
+            return {
+                id: i,
+                color: PASTEL_COLORS[i % PASTEL_COLORS.length],
+                // Quan trọng: Sử dụng negative delay (-duration đến 0) để bóng xuất hiện ngẫu nhiên dọc theo đường bay ngay từ đầu
+                // thay vì đợi từ dưới bay lên
+                delay: -(Math.random() * duration), 
+                duration: duration,
+                swayDuration: 4 + Math.random() * 2,
+                stringDuration: 2.5 + Math.random(),
+                left: Math.random() * 80 + 10, // Giới hạn 10% - 90% chiều ngang
+                scale: 0.6 + Math.random() * 0.4, 
+                driftX: (Math.random() - 0.5) * 100 + 'px' // Bay lệch trái phải ngẫu nhiên
+            };
+        });
     }, []);
 
     return (
@@ -78,39 +83,39 @@ const BalloonsBackground: React.FC = () => {
             {balloons.map((b) => (
                 <div
                     key={b.id}
-                    className="absolute opacity-0 animate-balloon-rise"
+                    className="absolute animate-balloon-rise"
                     style={{
                         left: `${b.left}%`,
-                        // bottom được xử lý bởi keyframes, ở đây chỉ set giá trị ban đầu để tránh flash
                         animationDelay: `${b.delay}s`,
                         animationDuration: `${b.duration}s`,
                         transform: `scale(${b.scale})`,
-                    }}
+                        '--drift-x': b.driftX, // CSS variable cho hướng bay
+                    } as React.CSSProperties}
                 >
-                    {/* Container này chịu trách nhiệm lắc lư qua lại nhẹ nhàng */}
+                    {/* Container lắc lư thân bóng */}
                     <div 
                         className="animate-balloon-wobble" 
                         style={{ animationDuration: `${b.swayDuration}s` }}
                     >
-                        {/* Thân bóng bay: Bo tròn hơn (gần như tròn) nhưng hơi cao hơn rộng một chút */}
-                        <div className={`w-20 h-24 rounded-[50%_50%_50%_50%_/_40%_40%_60%_60%] relative shadow-inner ${b.color} border border-white/20`}>
-                            {/* Vệt sáng trên bóng */}
+                        {/* Thân bóng bay */}
+                        <div className={`w-20 h-24 rounded-[50%_50%_50%_50%_/_45%_45%_55%_55%] relative shadow-inner ${b.color} border border-white/20`}>
+                            {/* Vệt sáng */}
                             <div className="absolute top-4 left-4 w-4 h-8 bg-white/30 rounded-full rotate-[20deg] blur-[1px]"></div>
                         </div>
 
-                        {/* Phần dây và thư: Đung đưa mạnh hơn như con lắc trước gió */}
+                        {/* Phần dây và thư: Đung đưa mạnh hơn và dùng SVG để tạo độ cong */}
                         <div 
-                            className="absolute bottom-0 left-1/2 w-0 h-0 animate-string-swing"
+                            className="absolute top-[98%] left-1/2 -translate-x-1/2 animate-string-swing origin-top"
                             style={{ animationDuration: `${b.stringDuration}s` }}
                         >
-                            {/* Nút thắt ngay dưới bóng */}
-                            <div className="absolute -top-1 -left-1.5 w-3 h-2 bg-inherit opacity-80 rounded-sm"></div>
+                             {/* Dây bóng dùng SVG curve cho tự nhiên */}
+                            <svg width="40" height="100" viewBox="0 0 40 100" className="opacity-60 overflow-visible">
+                                {/* Đường cong nhẹ (Quadratic Bezier) bắt đầu từ giữa trên (20,0) uốn nhẹ qua (25, 40) xuống (15, 90) */}
+                                <path d="M 20 0 Q 25 40 15 90" stroke="#a8a29e" strokeWidth="1.5" fill="none" />
+                            </svg>
                             
-                            {/* Sợi dây dài */}
-                            <div className="absolute top-0 left-[-0.5px] w-[1px] h-24 bg-stone-400/40"></div>
-                            
-                            {/* Phong thư nhỏ treo ở cuối dây */}
-                            <div className="absolute top-24 left-[-10px] w-5 h-4 bg-white border border-stone-200 shadow-sm rotate-6 origin-top flex items-center justify-center">
+                            {/* Phong thư nhỏ treo ở cuối dây (toạ độ khớp với điểm cuối của path SVG) */}
+                            <div className="absolute top-[90px] left-[5px] w-6 h-4 bg-white border border-stone-200 shadow-sm rotate-6 flex items-center justify-center rounded-sm transform -translate-x-1/2">
                                 <Heart size={8} className="text-rose-400 fill-rose-400" />
                             </div>
                         </div>

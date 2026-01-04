@@ -81,31 +81,27 @@
       }
 
       /* Balloon Animations */
-      /* Bay từ dưới lên trên, lệch dần sang phải */
+      /* Bay từ dưới (ngoài màn hình) lên trên (ngoài màn hình) */
       @keyframes balloon-rise {
         0% {
-          transform: translate(0, 120vh);
-          opacity: 0;
-        }
-        10% {
-          opacity: 0.9;
+          transform: translate(0, 110vh);
         }
         100% {
-          transform: translate(30vw, -20vh); /* Bay chéo nhẹ */
-          opacity: 0.9;
+          /* translate X sẽ được random trong style inline để tạo sự khác biệt */
+          transform: translate(var(--drift-x, 20px), -30vh);
         }
       }
 
-      /* Lắc lư thân bóng nhẹ nhàng */
+      /* Thân bóng lắc lư nhẹ */
       @keyframes balloon-wobble {
-        0%, 100% { transform: rotate(-5deg) translateX(-5px); }
-        50% { transform: rotate(5deg) translateX(5px); }
+        0% { transform: rotate(-3deg); }
+        100% { transform: rotate(3deg); }
       }
 
-      /* Dây và thư đung đưa mạnh hơn (hiệu ứng con lắc) */
+      /* Dây đung đưa: pivot ở đỉnh, lắc qua lại như con lắc */
       @keyframes string-swing {
-        0% { transform: rotate(-15deg); }
-        100% { transform: rotate(15deg); }
+        0% { transform: rotate(-8deg); }
+        100% { transform: rotate(8deg); }
       }
 
       .animate-fade-in-up {
@@ -127,15 +123,18 @@
 
       /* Class animations cho component */
       .animate-balloon-rise {
-        animation: balloon-rise linear infinite;
+        animation-name: balloon-rise;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+        /* Delay và Duration sẽ được set inline */
       }
       
       .animate-balloon-wobble {
-        animation: balloon-wobble ease-in-out infinite alternate;
+        animation: balloon-wobble 4s ease-in-out infinite alternate;
       }
 
       .animate-string-swing {
-        animation: string-swing ease-in-out infinite alternate;
+        animation: string-swing 3s ease-in-out infinite alternate;
         transform-origin: top center;
       }
 
