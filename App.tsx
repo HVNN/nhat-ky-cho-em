@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { User, DiaryEntry, Page, MOODS, MOOD_LABELS, MoodType } from './types';
+import { User, DiaryEntry, Page, MOODS, MOOD_LABELS, MoodType, PASTEL_COLORS } from './types';
 import * as storage from './services/storageService';
 import Navbar from './components/Navbar';
 import TreeTimeline from './components/TreeTimeline';
@@ -53,6 +53,48 @@ const customTheme = {
 };
 
 const ITEMS_PER_PAGE = 10;
+
+// Component hiển thị bóng bay bay lơ lửng ở background
+const BalloonsBackground: React.FC = () => {
+    const balloonCount = 15;
+    const balloons = useMemo(() => {
+        return [...Array(balloonCount)].map((_, i) => ({
+            id: i,
+            color: PASTEL_COLORS[i % PASTEL_COLORS.length],
+            delay: Math.random() * 20,
+            duration: 20 + Math.random() * 15,
+            left: Math.random() * 40 - 10, // Bắt đầu ở khu vực góc trái
+            scale: 0.6 + Math.random() * 0.8,
+        }));
+    }, []);
+
+    return (
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+            {balloons.map((b) => (
+                <div
+                    key={b.id}
+                    className="absolute opacity-0 animate-balloon"
+                    style={{
+                        left: `${b.left}%`,
+                        bottom: `-15%`,
+                        animationDelay: `${b.delay}s`,
+                        animationDuration: `${b.duration}s`,
+                        transform: `scale(${b.scale})`,
+                    }}
+                >
+                    <div className={`w-14 h-20 rounded-t-full rounded-b-[45%] relative shadow-inner ${b.color} border border-white/20`}>
+                        {/* Nút thắt bóng */}
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-inherit clip-triangle"></div>
+                        {/* Dây bóng */}
+                        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[1px] h-16 bg-stone-400/30"></div>
+                        {/* Vệt sáng trên bóng */}
+                        <div className="absolute top-3 left-4 w-3 h-6 bg-white/30 rounded-full rotate-[15deg]"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -191,7 +233,6 @@ const App: React.FC = () => {
 
     setLoading(true);
     
-    // finalDateTime giờ đây sử dụng trực tiếp diaryDate bao gồm cả ngày và giờ từ picker
     const finalDateTime = diaryDate;
     const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${finalDateTime.format('DD/MM/YYYY')}`;
 
@@ -324,6 +365,9 @@ const App: React.FC = () => {
             <div className="absolute bottom-20 left-20 text-purple-100 animate-pulse">
                 <Sparkles size={50} fill="currentColor" />
             </div>
+            
+            {/* Hiệu ứng bóng bay */}
+            <BalloonsBackground />
         </div>
 
         <Navbar 
@@ -567,7 +611,7 @@ const App: React.FC = () => {
                                     format="DD/MM/YYYY HH:mm" 
                                     showTime={{ format: 'HH:mm' }}
                                     allowClear={false} 
-                                    className="bg-transparent border-none shadow-none font-hand text-lg text-rose-50 font-bold p-0 cursor-pointer hover:bg-stone-50 px-2 rounded-lg" 
+                                    className="bg-transparent border-none shadow-none font-hand text-lg text-rose-500 font-bold p-0 cursor-pointer hover:bg-stone-50 px-2 rounded-lg" 
                                     style={{ color: '#f43f5e' }}
                                 />
                              </div>
