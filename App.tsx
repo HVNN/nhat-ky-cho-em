@@ -56,15 +56,20 @@ const ITEMS_PER_PAGE = 10;
 
 // Component hiển thị bóng bay bay lơ lửng ở background
 const BalloonsBackground: React.FC = () => {
-    const balloonCount = 15;
+    // Giảm số lượng bóng bay xuống
+    const balloonCount = 6;
+    
     const balloons = useMemo(() => {
         return [...Array(balloonCount)].map((_, i) => ({
             id: i,
             color: PASTEL_COLORS[i % PASTEL_COLORS.length],
-            delay: Math.random() * 20,
-            duration: 20 + Math.random() * 15,
-            left: Math.random() * 40 - 10, // Bắt đầu ở khu vực góc trái
-            scale: 0.6 + Math.random() * 0.8,
+            // Random hóa các tham số animation
+            delay: Math.random() * 15, // Thời gian trễ khi bắt đầu
+            duration: 25 + Math.random() * 15, // Tốc độ bay lên (càng lớn càng chậm)
+            swayDuration: 3 + Math.random() * 2, // Tốc độ lắc lư của thân bóng
+            stringDuration: 1.5 + Math.random(), // Tốc độ đung đưa của dây
+            left: Math.random() * 60 - 10, // Vị trí xuất phát (thiên về bên trái màn hình)
+            scale: 0.7 + Math.random() * 0.4, // Kích thước to nhỏ khác nhau
         }));
     }, []);
 
@@ -73,22 +78,42 @@ const BalloonsBackground: React.FC = () => {
             {balloons.map((b) => (
                 <div
                     key={b.id}
-                    className="absolute opacity-0 animate-balloon"
+                    className="absolute opacity-0 animate-balloon-rise"
                     style={{
                         left: `${b.left}%`,
-                        bottom: `-15%`,
+                        // bottom được xử lý bởi keyframes, ở đây chỉ set giá trị ban đầu để tránh flash
                         animationDelay: `${b.delay}s`,
                         animationDuration: `${b.duration}s`,
                         transform: `scale(${b.scale})`,
                     }}
                 >
-                    <div className={`w-14 h-20 rounded-t-full rounded-b-[45%] relative shadow-inner ${b.color} border border-white/20`}>
-                        {/* Nút thắt bóng */}
-                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-inherit clip-triangle"></div>
-                        {/* Dây bóng */}
-                        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[1px] h-16 bg-stone-400/30"></div>
-                        {/* Vệt sáng trên bóng */}
-                        <div className="absolute top-3 left-4 w-3 h-6 bg-white/30 rounded-full rotate-[15deg]"></div>
+                    {/* Container này chịu trách nhiệm lắc lư qua lại nhẹ nhàng */}
+                    <div 
+                        className="animate-balloon-wobble" 
+                        style={{ animationDuration: `${b.swayDuration}s` }}
+                    >
+                        {/* Thân bóng bay: Bo tròn hơn (gần như tròn) nhưng hơi cao hơn rộng một chút */}
+                        <div className={`w-20 h-24 rounded-[50%_50%_50%_50%_/_40%_40%_60%_60%] relative shadow-inner ${b.color} border border-white/20`}>
+                            {/* Vệt sáng trên bóng */}
+                            <div className="absolute top-4 left-4 w-4 h-8 bg-white/30 rounded-full rotate-[20deg] blur-[1px]"></div>
+                        </div>
+
+                        {/* Phần dây và thư: Đung đưa mạnh hơn như con lắc trước gió */}
+                        <div 
+                            className="absolute bottom-0 left-1/2 w-0 h-0 animate-string-swing"
+                            style={{ animationDuration: `${b.stringDuration}s` }}
+                        >
+                            {/* Nút thắt ngay dưới bóng */}
+                            <div className="absolute -top-1 -left-1.5 w-3 h-2 bg-inherit opacity-80 rounded-sm"></div>
+                            
+                            {/* Sợi dây dài */}
+                            <div className="absolute top-0 left-[-0.5px] w-[1px] h-24 bg-stone-400/40"></div>
+                            
+                            {/* Phong thư nhỏ treo ở cuối dây */}
+                            <div className="absolute top-24 left-[-10px] w-5 h-4 bg-white border border-stone-200 shadow-sm rotate-6 origin-top flex items-center justify-center">
+                                <Heart size={8} className="text-rose-400 fill-rose-400" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             ))}

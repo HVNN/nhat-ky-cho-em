@@ -80,25 +80,32 @@
         }
       }
 
-      /* Hiệu ứng bóng bay bay chéo */
-      @keyframes balloon-float {
+      /* Balloon Animations */
+      /* Bay từ dưới lên trên, lệch dần sang phải */
+      @keyframes balloon-rise {
         0% {
-          transform: translate(0, 0) rotate(0deg);
+          transform: translate(0, 120vh);
           opacity: 0;
         }
         10% {
-          opacity: 0.7;
-        }
-        50% {
-          transform: translate(50vw, -50vh) rotate(15deg);
-        }
-        90% {
-          opacity: 0.7;
+          opacity: 0.9;
         }
         100% {
-          transform: translate(110vw, -110vh) rotate(30deg);
-          opacity: 0;
+          transform: translate(30vw, -20vh); /* Bay chéo nhẹ */
+          opacity: 0.9;
         }
+      }
+
+      /* Lắc lư thân bóng nhẹ nhàng */
+      @keyframes balloon-wobble {
+        0%, 100% { transform: rotate(-5deg) translateX(-5px); }
+        50% { transform: rotate(5deg) translateX(5px); }
+      }
+
+      /* Dây và thư đung đưa mạnh hơn (hiệu ứng con lắc) */
+      @keyframes string-swing {
+        0% { transform: rotate(-15deg); }
+        100% { transform: rotate(15deg); }
       }
 
       .animate-fade-in-up {
@@ -118,8 +125,18 @@
         animation: sparkle 1s ease-in-out infinite;
       }
 
-      .animate-balloon {
-        animation: balloon-float 25s linear infinite;
+      /* Class animations cho component */
+      .animate-balloon-rise {
+        animation: balloon-rise linear infinite;
+      }
+      
+      .animate-balloon-wobble {
+        animation: balloon-wobble ease-in-out infinite alternate;
+      }
+
+      .animate-string-swing {
+        animation: string-swing ease-in-out infinite alternate;
+        transform-origin: top center;
       }
 
       /* Washi Tape Effect */
