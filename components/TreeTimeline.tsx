@@ -1,9 +1,7 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { DiaryEntry, User, MOODS, MOOD_LABELS } from '../types';
-// Fixed: Removed parseISO from date-fns as it was causing an error and can be replaced with the native Date constructor for ISO strings
 import { format, isValid } from 'date-fns';
-import { Trash2, Calendar, ChevronDown, ChevronUp, Star, Cloud, Heart, Flower, Sprout, Leaf, Edit3 } from 'lucide-react';
+import { Trash2, Calendar, Star, Cloud, Heart, Flower, Sprout, Leaf, Edit3 } from 'lucide-react';
 import { Button, Popconfirm, Tooltip } from 'antd';
 
 interface TreeTimelineProps {
@@ -16,8 +14,6 @@ interface TreeTimelineProps {
 }
 
 const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser, onDelete, onEdit, sortOrder }) => {
-  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
-
   // Group entries by date
   const groupedEntries = entries.reduce((acc, entry) => {
     const dateKey = format(new Date(entry.createdAt), 'yyyy-MM-dd');
@@ -36,16 +32,6 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
   const getUserColor = (username: string) => {
     const user = users.find(u => u.username === username);
     return user?.avatarColor || 'bg-stone-200';
-  };
-
-  const toggleExpand = (id: string) => {
-    const newSet = new Set(expandedEntries);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setExpandedEntries(newSet);
   };
 
   const getSticker = (id: string) => {
@@ -70,8 +56,9 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
   }
 
   return (
-    <div className="relative py-8 px-0 md:px-4 max-w-5xl mx-auto">
-      <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-px border-l-2 border-dashed border-stone-300 transform -translate-x-1/2 z-0 opacity-70"></div>
+    <div className="relative py-8 px-0 md:px-4 max-w-7xl mx-auto">
+      {/* Ẩn trục dọc trên mobile (hidden md:block), căn giữa trên desktop */}
+      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px border-l-2 border-dashed border-stone-300 transform -translate-x-1/2 z-0 opacity-70"></div>
 
       {sortedDates.map((date, dateIndex) => (
         <div key={date} className="mb-12 relative">
@@ -89,13 +76,6 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
               const isOwner = currentUser?.username === entry.username;
               const canModify = currentUser?.isAdmin || isOwner;
               
-              const isLongText = entry.content.length > 400;
-              const isExpanded = expandedEntries.has(entry.id);
-              const displayContent = isLongText && !isExpanded 
-                ? entry.content.slice(0, 400) + '...' 
-                : entry.content;
-
-              // Fixed: Replaced parseISO(entry.createdAt) with new Date(entry.createdAt)
               const entryDate = new Date(entry.createdAt);
               const timeDisplay = isValid(entryDate) ? format(entryDate, 'HH:mm') : '--:--';
 
@@ -110,10 +90,14 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
                     </div>
                   </div>
 
-                   <div className="md:hidden absolute top-10 left-6 w-8 h-px border-t-2 border-dashed border-stone-300 z-0"></div>
-                  <div className="hidden md:block w-1/2 px-12"></div>
+                   {/* Ẩn đường kẻ nối nhỏ trên mobile */}
+                   <div className="hidden md:block absolute top-10 left-6 w-8 h-px border-t-2 border-dashed border-stone-300 z-0"></div>
+                  
+                  {/* Spacer cho layout zig-zag */}
+                  <div className="hidden md:block w-1/2 px-8"></div>
 
-                  <div className="w-full md:w-1/2 px-2 md:px-12 pl-14 md:pl-12 relative z-10">
+                  {/* Nội dung bài viết: Bỏ padding-left lớn trên mobile (pl-14 -> px-2) */}
+                  <div className="w-full md:w-1/2 px-2 md:px-8 relative z-10">
                     <div 
                       className={`
                         relative bg-paper p-6 md:p-8 rounded-2xl border-2 border-stone-200
@@ -184,24 +168,8 @@ const TreeTimeline: React.FC<TreeTimelineProps> = ({ entries, users, currentUser
                       </div>
 
                       <div className="font-hand text-[1.25rem] text-ink leading-[1.8] whitespace-pre-wrap tracking-wide">
-                        {displayContent}
+                        {entry.content}
                       </div>
-
-                      {isLongText && (
-                        <div className="mt-4 flex justify-center">
-                          <Button 
-                            type="text"
-                            onClick={() => toggleExpand(entry.id)}
-                            className="text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1"
-                          >
-                            {isExpanded ? (
-                              <>Thu gọn <ChevronUp size={14} /></>
-                            ) : (
-                              <>Đọc tiếp... <ChevronDown size={14} /></>
-                            )}
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
