@@ -46,7 +46,8 @@ export const initStorage = async () => {
 
 export const getUsers = async (): Promise<User[]> => {
   if (supabase) {
-    const { data } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from('users').select('*');
+    if (error) throw error;
     return data || [];
   }
   const usersStr = localStorage.getItem(USERS_KEY);
@@ -74,7 +75,8 @@ export const registerUser = async (username: string): Promise<{ success: boolean
 
 export const loginUser = async (username: string): Promise<User | null> => {
   if (supabase) {
-    const { data } = await supabase.from('users').select('*').eq('username', username).single();
+    const { data, error } = await supabase.from('users').select('*').eq('username', username).single();
+    if (error && error.code !== 'PGRST116') console.error(error); // PGRST116 is "not found" which is fine here
     if (data) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(data));
     return data;
   }
@@ -93,7 +95,8 @@ export const logoutUser = () => localStorage.removeItem(CURRENT_USER_KEY);
 
 export const getEntries = async (): Promise<DiaryEntry[]> => {
   if (supabase) {
-    const { data } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
+    const { data, error } = await supabase.from('entries').select('*').order('createdAt', { ascending: false });
+    if (error) throw error;
     return data || [];
   }
   const entriesStr = localStorage.getItem(ENTRIES_KEY);
@@ -102,7 +105,8 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
 
 export const addEntry = async (entry: DiaryEntry) => {
   if (supabase) {
-    await supabase.from('entries').insert([entry]);
+    const { error } = await supabase.from('entries').insert([entry]);
+    if (error) throw error;
     return;
   }
   const entries = await getEntries();
@@ -112,7 +116,8 @@ export const addEntry = async (entry: DiaryEntry) => {
 
 export const updateEntry = async (id: string, updatedData: Partial<DiaryEntry>) => {
   if (supabase) {
-    await supabase.from('entries').update(updatedData).eq('id', id);
+    const { error } = await supabase.from('entries').update(updatedData).eq('id', id);
+    if (error) throw error;
     return;
   }
   const entries = await getEntries();
@@ -125,7 +130,8 @@ export const updateEntry = async (id: string, updatedData: Partial<DiaryEntry>) 
 
 export const deleteEntry = async (id: string) => {
   if (supabase) {
-    await supabase.from('entries').delete().eq('id', id);
+    const { error } = await supabase.from('entries').delete().eq('id', id);
+    if (error) throw error;
     return;
   }
   const entries = await getEntries();
@@ -135,8 +141,10 @@ export const deleteEntry = async (id: string) => {
 
 export const clearAllData = async (excludeUsername?: string) => {
     if (supabase) {
-        await supabase.from('entries').delete().not('id', 'is', null);
-        await supabase.from('users').delete().eq('isAdmin', false);
+        const { error: e1 } = await supabase.from('entries').delete().not('id', 'is', null);
+        if (e1) throw e1;
+        const { error: e2 } = await supabase.from('users').delete().eq('isAdmin', false);
+        if (e2) throw e2;
         return;
     }
     localStorage.removeItem(ENTRIES_KEY);
@@ -177,6 +185,14 @@ export const seedData = async () => {
         }
     }
 
+    // Helper to generate IDs that works everywhere
+    const generateId = () => {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        return 'id-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    };
+
     const allUsers = [...sampleUsers.map(u => u.username), 'Saitama'];
     for (let i = 0; i < 15; i++) {
         const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
@@ -185,7 +201,7 @@ export const seedData = async () => {
         randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 10)); 
         
         const entry: DiaryEntry = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             username: randomUser,
             title: randomContent.title + " (Mẫu)",
             content: randomContent.content + "\n(Đây là dữ liệu mẫu được tạo tự động để bạn kiểm tra giao diện nhật ký)",

@@ -121,6 +121,17 @@ const BalloonsBackground: React.FC = () => {
     );
 };
 
+const generateId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        try {
+            return crypto.randomUUID();
+        } catch (e) {
+            // Fallback if randomUUID fails (e.g. insecure context)
+        }
+    }
+    return 'id-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+};
+
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [page, setPage] = useState<Page>('home');
@@ -258,34 +269,40 @@ const App: React.FC = () => {
 
     setLoading(true);
     
-    const finalDateTime = diaryDate;
-    const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${finalDateTime.format('DD/MM/YYYY')}`;
+    try {
+        const finalDateTime = diaryDate;
+        const finalTitle = diaryTitle.trim() ? diaryTitle.trim() : `Ngày ${finalDateTime.format('DD/MM/YYYY')}`;
 
-    if (editingId) {
-        await storage.updateEntry(editingId, {
-            title: finalTitle,
-            content: diaryContent,
-            mood: selectedMood,
-            createdAt: finalDateTime.toISOString()
-        });
-        messageApi.success('Đã cập nhật dòng tâm sự...');
-    } else {
-        const newEntry: DiaryEntry = {
-          id: crypto.randomUUID(),
-          username: currentUser.username,
-          title: finalTitle,
-          content: diaryContent,
-          mood: selectedMood,
-          createdAt: finalDateTime.toISOString()
-        };
-        await storage.addEntry(newEntry);
-        messageApi.success('Đã lưu lại dòng tâm sự mới...');
+        if (editingId) {
+            await storage.updateEntry(editingId, {
+                title: finalTitle,
+                content: diaryContent,
+                mood: selectedMood,
+                createdAt: finalDateTime.toISOString()
+            });
+            messageApi.success('Đã cập nhật dòng tâm sự...');
+        } else {
+            const newEntry: DiaryEntry = {
+              id: generateId(),
+              username: currentUser.username,
+              title: finalTitle,
+              content: diaryContent,
+              mood: selectedMood,
+              createdAt: finalDateTime.toISOString()
+            };
+            await storage.addEntry(newEntry);
+            messageApi.success('Đã lưu lại dòng tâm sự mới...');
+        }
+
+        resetWriteForm();
+        await refreshData();
+        setPage('home');
+    } catch (error: any) {
+        console.error("Save error:", error);
+        messageApi.error('Lỗi khi lưu bài viết: ' + (error.message || 'Lỗi không xác định'));
+    } finally {
+        setLoading(false);
     }
-
-    resetWriteForm();
-    await refreshData();
-    setPage('home');
-    setLoading(false);
   };
 
   const handleEditEntry = (entry: DiaryEntry) => {
@@ -299,10 +316,15 @@ const App: React.FC = () => {
 
   const handleDeleteEntry = async (id: string) => {
     setLoading(true);
-    await storage.deleteEntry(id);
-    await refreshData();
-    setLoading(false);
-    messageApi.success('Đã xóa dòng nhật ký.');
+    try {
+        await storage.deleteEntry(id);
+        await refreshData();
+        messageApi.success('Đã xóa dòng nhật ký.');
+    } catch (error: any) {
+        messageApi.error('Lỗi khi xóa: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
   };
 
   const handleClearAllData = async () => {
