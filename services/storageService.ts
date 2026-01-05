@@ -106,7 +106,32 @@ export const getEntries = async (): Promise<DiaryEntry[]> => {
 export const addEntry = async (entry: DiaryEntry) => {
   if (supabase) {
     const { error } = await supabase.from('entries').insert([entry]);
-    if (error) throw error;
+    if (error) {
+        // Handle FK violation: User does not exist (Error code 23503)
+        // This often happens if the DB was wiped but the user is still logged in locally
+        if (error.code === '23503') {
+            console.warn("⚠️ User missing in DB (FK Violation), attempting to auto-recreate:", entry.username);
+            const randomColor = PASTEL_COLORS[Math.floor(Math.random() * PASTEL_COLORS.length)];
+            
+            // Attempt to recreate the user
+            const { error: userError } = await supabase.from('users').insert([{ 
+                username: entry.username, 
+                isAdmin: false, 
+                avatarColor: randomColor 
+            }]);
+            
+            if (!userError) {
+                // Retry adding the entry
+                const { error: retryError } = await supabase.from('entries').insert([entry]);
+                if (retryError) throw retryError;
+                return;
+            } else {
+                console.error("❌ Failed to auto-recreate user:", userError);
+                throw error; // Throw original error if recovery failed
+            }
+        }
+        throw error;
+    }
     return;
   }
   const entries = await getEntries();
@@ -158,7 +183,8 @@ export const seedData = async () => {
         { username: 'Mây Lang Thang', avatarColor: 'bg-sky-100' },
         { username: 'Nắng Mùa Hạ', avatarColor: 'bg-amber-100' },
         { username: 'Mưa Tháng Sáu', avatarColor: 'bg-indigo-100' },
-        { username: 'Gió Heo May', avatarColor: 'bg-teal-100' }
+        { username: 'Gió Heo May', avatarColor: 'bg-teal-100' },
+        { username: 'Saitama', avatarColor: 'bg-rose-200' } // Ensure Saitama exists for seeding
     ];
 
     const sampleContents = [
@@ -175,11 +201,15 @@ export const seedData = async () => {
     for (const u of sampleUsers) {
         if (supabase) {
             const { data: existing } = await supabase.from('users').select('*').eq('username', u.username).single();
-            if (!existing) await supabase.from('users').insert([{ ...u, isAdmin: false }]);
+            if (!existing) {
+                // Keep Saitama as admin if seeded
+                const isAdmin = u.username === 'Saitama';
+                await supabase.from('users').insert([{ ...u, isAdmin }]);
+            }
         } else {
             const users = await getUsers();
             if (!users.find(exist => exist.username === u.username)) {
-                users.push({ ...u, isAdmin: false });
+                users.push({ ...u, isAdmin: u.username === 'Saitama' });
                 localStorage.setItem(USERS_KEY, JSON.stringify(users));
             }
         }
@@ -193,7 +223,8 @@ export const seedData = async () => {
         return 'id-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
     };
 
-    const allUsers = [...sampleUsers.map(u => u.username), 'Saitama'];
+    const allUsers = sampleUsers.map(u => u.username);
+    
     for (let i = 0; i < 15; i++) {
         const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
         const randomContent = sampleContents[Math.floor(Math.random() * sampleContents.length)];
